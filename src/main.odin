@@ -6,16 +6,12 @@ import "core:c"
 
 import rl "vendor:raylib"
 
-axis_segment :: struct
-{
-    offset: f32,
-    span: f32,
-    step: f32,
+graph := graph_info {
+    display_area = graph_display_area,
+    x_axis = axis_segment { offset = -1, span = 2, step = 0.5 },
+    y_axis = axis_segment { offset = -1, span = 2, step = 0.5 },
+    scale = 1.0
 }
-
-x_axis := axis_segment { offset = -1, span = 2, step = 0.5 }
-y_axis := axis_segment { offset = -1, span = 2, step = 0.5 }
-scale: f32 = 1.0
 
 POINT_COUNT :: 200
 SCALE_FACTOR :: 10.0
@@ -35,68 +31,42 @@ main :: proc ()
     for (!rl.WindowShouldClose())
     {
         /* Scale Controls */
-        scale -= rl.GetMouseWheelMove() * rl.GetFrameTime() * SCALE_FACTOR
-        scale = max(scale, math.F32_EPSILON)
+        graph.scale -= rl.GetMouseWheelMove() * rl.GetFrameTime() * SCALE_FACTOR
+        graph.scale = max(graph.scale, math.F32_EPSILON)
 
         /* Offset/Movement Controls */
         if(rl.IsKeyPressed(.W) || rl.IsKeyDown(.W))
         {
-            y_axis.offset += rl.GetFrameTime() * MOVEMENT_SPEED * scale
+            graph.y_axis.offset += rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
         }
 
         if(rl.IsKeyPressed(.S) || rl.IsKeyDown(.S))
         {
-            y_axis.offset -= rl.GetFrameTime() * MOVEMENT_SPEED * scale
+            graph.y_axis.offset -= rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
         }
 
         if(rl.IsKeyPressed(.D) || rl.IsKeyDown(.D))
         {
-            x_axis.offset += rl.GetFrameTime() * MOVEMENT_SPEED * scale
+            graph.x_axis.offset += rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
         }
 
         if(rl.IsKeyPressed(.A) || rl.IsKeyDown(.A))
         {
-            x_axis.offset -= rl.GetFrameTime() * MOVEMENT_SPEED * scale
+            graph.x_axis.offset -= rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
         }
 
         rl.BeginDrawing()
             rl.ClearBackground(rl.BLACK)
 
-            /* Draw Vertical Lines */
-            x_step_start := axis_first_step_index(x_axis)
-            x_step_end := axis_last_step_index(x_axis, scale)
+            draw_vertical_step_indicators(graph, rl.GRAY)
+            draw_horizontal_step_indicators(graph, rl.GRAY)
 
-            for i in x_step_start..=x_step_end
-            {
-                x, exists := map_to_axis(f32(i)*x_axis.step, x_axis, scale)
-                x *= screen_vector().x
-
-                if(exists)
-                {
-                    rl.DrawLineV({x, 0}, {x, screen_vector().y}, rl.GRAY)
-                }
-            }
-
-            /* Draw Horizontal Lines */
-            y_step_start := axis_first_step_index(y_axis)
-            y_step_end := axis_last_step_index(y_axis, scale)
-
-            for i in y_step_start..=y_step_end
-            {
-                y, exists := map_to_axis(f32(i)*y_axis.step, y_axis, scale)
-                y = screen_vector().y * (1 - y)
-                
-                if(exists)
-                {
-                    rl.DrawLineV({0, y}, {screen_vector().x, y}, rl.GRAY)
-                }
-            }
-
+            // Draw Function Graph
             for i in 0..=POINT_COUNT
             {
-                x := x_axis.offset + (f32(i) * x_axis.span * scale) / POINT_COUNT
+                x := graph.x_axis.offset + graph.x_axis.span * graph.scale * (f32(i) / POINT_COUNT)
                 y := graph_function(x)
-                map_and_draw_point(x, y, x_axis, y_axis, scale, rl.RED)
+                draw_point_in_graph({ x, y }, graph, 10, rl.RED)
             }
 
         rl.EndDrawing()
@@ -110,43 +80,10 @@ graph_function :: proc(x: f32) -> f32
     return math.sin(x)
 }
 
-map_and_draw_point :: proc(x: f32, y: f32, x_axis: axis_segment, y_axis: axis_segment, scale: f32, color: rl.Color)
+graph_display_area :: proc() -> rl.Rectangle
 {
-    screen_x, xexists := map_to_axis(x, x_axis, scale)
-    if(!xexists)
-    {
-        return
-    }
-
-    screen_y, yexists := map_to_axis(y, y_axis, scale)
-    if(!yexists)
-    {
-        return
-    }
-
-    screen_x = screen_vector().x * screen_x
-    screen_y = screen_vector().y * (1 - screen_y)
-    rl.DrawCircleV({ screen_x, screen_y }, 10, color)
-}
-
-map_to_axis :: proc(value: f32, axis: axis_segment, scale: f32) -> (f32, bool)
-{
-    if(value < axis.offset || value > axis.offset + axis.span * scale)
-    {
-        return 0, false
-    }
-
-    return (value - axis.offset) / (axis.span * scale), true
-}
-
-axis_first_step_index :: proc(axis: axis_segment) -> i64
-{
-    return cast(i64) math.floor(axis.offset / axis.step)
-}
-
-axis_last_step_index :: proc(axis: axis_segment, scale: f32) -> i64
-{
-    return cast(i64) math.floor((axis.offset + axis.span * scale) / axis.step)
+    screen_size := screen_vector()
+    return { 0, 0, screen_size.x, screen_size.y - 100 }
 }
 
 screen_vector :: proc() -> rl.Vector2
