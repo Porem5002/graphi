@@ -17,6 +17,7 @@ x_axis := axis_segment { offset = -1, span = 2, step = 0.5 }
 y_axis := axis_segment { offset = -1, span = 2, step = 0.5 }
 scale: f32 = 1.0
 
+POINT_COUNT :: 200
 SCALE_FACTOR :: 10.0
 MOVEMENT_SPEED :: 3.0
 
@@ -91,21 +92,11 @@ main :: proc ()
                 }
             }
 
-            /* Draw Graph */
-            for i in -1000..=1000
+            for i in 0..=POINT_COUNT
             {
-                og_x := f32(i) / 10
-
-                x, xexists := map_to_axis(og_x, x_axis, scale)
-                x *= screen_vector().x
-
-                y, yexists := map_to_axis(graph_function(og_x), y_axis, scale)
-                y = screen_vector().y * (1 - y)
-
-                if(xexists && yexists)
-                {
-                    rl.DrawCircleV({ x, y }, 10, rl.RED)
-                }
+                x := x_axis.offset + (f32(i) * x_axis.span * scale) / POINT_COUNT
+                y := graph_function(x)
+                map_and_draw_point(x, y, x_axis, y_axis, scale, rl.RED)
             }
 
         rl.EndDrawing()
@@ -117,6 +108,25 @@ main :: proc ()
 graph_function :: proc(x: f32) -> f32
 {
     return math.sin(x)
+}
+
+map_and_draw_point :: proc(x: f32, y: f32, x_axis: axis_segment, y_axis: axis_segment, scale: f32, color: rl.Color)
+{
+    screen_x, xexists := map_to_axis(x, x_axis, scale)
+    if(!xexists)
+    {
+        return
+    }
+
+    screen_y, yexists := map_to_axis(y, y_axis, scale)
+    if(!yexists)
+    {
+        return
+    }
+
+    screen_x = screen_vector().x * screen_x
+    screen_y = screen_vector().y * (1 - screen_y)
+    rl.DrawCircleV({ screen_x, screen_y }, 10, color)
 }
 
 map_to_axis :: proc(value: f32, axis: axis_segment, scale: f32) -> (f32, bool)
