@@ -20,6 +20,8 @@ resolve :: proc($T: typeid, v: responsive(T)) -> T
     panic("unreachable")
 }
 
+plotable_function :: #type proc "contextless" (_: f32) -> f32
+
 graph_info :: struct
 {
     display_area: responsive(rl.Rectangle),
@@ -82,6 +84,34 @@ draw_point_in_graph :: proc(point: rl.Vector2, graph: graph_info, radius: f32, c
     }
 
     rl.DrawCircleV({ screen_x, screen_y }, radius, color)
+}
+
+draw_values_in_graph :: proc(values: []f32, graph: graph_info, point_size: f32, color: rl.Color)
+{
+    for v, i in values
+    {
+        x := f32(i + 1)
+        y := v
+        draw_point_in_graph({ x, y }, graph, point_size, color)
+    }
+}
+
+draw_points_in_graph :: proc(points: []rl.Vector2, graph: graph_info, point_size: f32, color: rl.Color)
+{
+    for p in points
+    {
+        draw_point_in_graph(p, graph, point_size, color)
+    }
+}
+
+draw_function_in_graph :: proc(f: plotable_function, graph: graph_info, point_count: f32, point_size: f32, color: rl.Color)
+{
+    for i in 0..=point_count
+    {
+        x := graph.x_axis.offset + graph.x_axis.span * graph.scale * (f32(i) / f32(point_count))
+        y := f(x)
+        draw_point_in_graph({ x, y }, graph, point_size, color)
+    }
 }
 
 map_to_x_coord :: proc(value: f32, graph: graph_info) -> (f32, bool)

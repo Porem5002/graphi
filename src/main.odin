@@ -13,7 +13,7 @@ graph := graph_info {
     scale = 1.0
 }
 
-POINT_COUNT :: 200
+POINT_SIZE :: 4.0
 SCALE_FACTOR :: 10.0
 MOVEMENT_SPEED :: 3.0
 
@@ -57,27 +57,18 @@ main :: proc ()
 
         rl.BeginDrawing()
             rl.ClearBackground(rl.BLACK)
+            rl.DrawFPS(10, 10)
 
             draw_vertical_step_indicators(graph, rl.GRAY)
             draw_horizontal_step_indicators(graph, rl.GRAY)
 
-            // Draw Function Graph
-            for i in 0..=POINT_COUNT
-            {
-                x := graph.x_axis.offset + graph.x_axis.span * graph.scale * (f32(i) / POINT_COUNT)
-                y := graph_function(x)
-                draw_point_in_graph({ x, y }, graph, 10, rl.RED)
-            }
-
+            draw_function_in_graph(math.tan_f32, graph, graph_display_area().width, POINT_SIZE, rl.YELLOW)
+            draw_function_in_graph(math.exp_f32, graph, graph_display_area().width, POINT_SIZE, rl.GREEN)
+            draw_function_in_graph(math.sin_f32, graph, graph_display_area().width, POINT_SIZE, rl.RED)
         rl.EndDrawing()
     }
 
     rl.CloseWindow()
-}
-
-graph_function :: proc(x: f32) -> f32
-{
-    return math.sin(x)
 }
 
 graph_display_area :: proc() -> rl.Rectangle
