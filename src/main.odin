@@ -62,9 +62,13 @@ main :: proc ()
             draw_vertical_step_indicators(graph, rl.GRAY)
             draw_horizontal_step_indicators(graph, rl.GRAY)
 
-            draw_function_in_graph(math.tan_f32, graph, graph_display_area().width, POINT_SIZE, rl.YELLOW)
-            draw_function_in_graph(math.exp_f32, graph, graph_display_area().width, POINT_SIZE, rl.GREEN)
-            draw_function_in_graph(math.sin_f32, graph, graph_display_area().width, POINT_SIZE, rl.RED)
+            draw_values_in_graph([]f32 { 85, 70, 65, 75, 44, 54, 23, 60 }, graph, .LINES, POINT_SIZE, rl.GREEN)
+            draw_values_in_graph([]f32 { 85, 70, 65, 75, 44, 54, 23, 60 }, graph, .POINTS, POINT_SIZE, rl.BLUE)
+
+            draw_points_in_graph([]rl.Vector2 { {10, 9}, {1.8, 1.7}, {2.8, 9}, {5, 12} }, graph, .LINES, POINT_SIZE, rl.BLUE)
+
+            draw_function_in_graph(math.tan_f32, graph, graph_display_area().width, .LINES, POINT_SIZE, rl.YELLOW)
+            draw_function_in_graph(math.tan_f32, graph, graph_display_area().width, .POINTS, POINT_SIZE, rl.RED)
         rl.EndDrawing()
     }
 
@@ -74,7 +78,7 @@ main :: proc ()
 graph_display_area :: proc() -> rl.Rectangle
 {
     screen_size := screen_vector()
-    return { 0, 0, screen_size.x, screen_size.y - 100 }
+    return { 0, 0, screen_size.x, screen_size.y }
 }
 
 screen_vector :: proc() -> rl.Vector2
