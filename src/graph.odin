@@ -161,11 +161,23 @@ draw_function_in_graph :: proc(f: plotable_function, graph: graph_info, point_co
         {
             x := graph.x_axis.offset + graph.x_axis.span * graph.scale * (f32(i) / f32(point_count))
             y := f(x)
-            
-            draw_line_in_graph(prev, { x, y }, graph, thickness, color)
+
+            if(converges(prev.x, x, f))
+            {
+                draw_line_in_graph(prev, { x, y }, graph, thickness, color)
+            }
+
             prev = { x, y }
         }
     }
+}
+
+converges :: proc(x1: f32, x2: f32, f: plotable_function, threshold := 100) -> bool
+{
+    y1 := f(x1)
+    y2 := f(x2)
+
+    return abs(y1 - y2) <= f32(threshold)
 }
 
 map_to_coords :: proc(point: rl.Vector2, graph: graph_info) -> rl.Vector2
