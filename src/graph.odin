@@ -50,6 +50,46 @@ visual_options :: struct
     color: rl.Color,
 }
 
+graph_object :: union
+{
+    graph_object_values,
+    graph_object_points,
+    graph_object_function,
+}
+
+graph_object_values :: struct
+{
+    values: [dynamic]f32,
+    using visual_options: visual_options,
+}
+
+graph_object_points :: struct
+{
+    points: [dynamic]rl.Vector2,
+    using visual_options: visual_options,
+}
+
+graph_object_function :: struct
+{
+    f: plotable_function,
+    point_count: responsive(f32),
+    using visual_options: visual_options,
+}
+
+draw_object_in_graph :: proc(object: graph_object, graph: graph_info)
+{
+    switch o in object
+    {
+        case graph_object_values:
+            draw_values_in_graph(o.values[:], graph, o.visual_options)
+        case graph_object_points:
+            draw_points_in_graph(o.points[:], graph, o.visual_options)
+        case graph_object_function:
+            resolved_point_count := resolve(f32, o.point_count)
+            draw_function_in_graph(o.f, graph, resolved_point_count, o.visual_options)
+    }
+}
+
 draw_vertical_step_indicators :: proc(graph: graph_info, color: rl.Color)
 {
     display_area := resolve(rl.Rectangle, graph.display_area)
@@ -87,7 +127,7 @@ draw_line_in_graph :: proc(start: rl.Vector2, end: rl.Vector2, graph: graph_info
     rl.DrawLineEx(start_screen_coords, end_screen_coords, thickness, color)
 }
 
-draw_values_in_graph :: proc(values: []f32, graph: graph_info, style: visual_style, thickness: f32, color: rl.Color)
+draw_values_in_graph :: proc(values: []f32, graph: graph_info, using visual_options: visual_options)
 {
     if(len(values) == 1)
     {
@@ -114,7 +154,7 @@ draw_values_in_graph :: proc(values: []f32, graph: graph_info, style: visual_sty
     }
 }
 
-draw_points_in_graph :: proc(points: []rl.Vector2, graph: graph_info, style: visual_style, thickness: f32, color: rl.Color)
+draw_points_in_graph :: proc(points: []rl.Vector2, graph: graph_info, using visual_options: visual_options)
 {
     if(len(points) == 1)
     {
@@ -140,7 +180,7 @@ draw_points_in_graph :: proc(points: []rl.Vector2, graph: graph_info, style: vis
     }
 }
 
-draw_function_in_graph :: proc(f: plotable_function, graph: graph_info, point_count: f32, style: visual_style, thickness: f32, color: rl.Color)
+draw_function_in_graph :: proc(f: plotable_function, graph: graph_info, point_count: f32, using visual_options: visual_options)
 {
     if(style == .POINTS)
     {

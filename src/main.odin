@@ -19,6 +19,35 @@ MOVEMENT_SPEED :: 3.0
 
 TARGET_FPS :: 60
 
+objects := [?]graph_object {
+    graph_object_values {
+        values = { 85, 70, 65, 75, 44, 54, 23, 60 },
+        style = .LINES,
+        thickness = POINT_SIZE,
+        color = rl.GREEN,
+    },
+    graph_object_points {
+        points = { {10, 9}, {1.8, 1.7}, {2.8, 9}, {5, 12} },
+        style = .LINES,
+        thickness = POINT_SIZE,
+        color = rl.BLUE,
+    },
+    graph_object_function {
+        f = math.exp_f32,
+        point_count = proc() -> f32 { return graph_display_area().width },
+        style = .LINES,
+        thickness = POINT_SIZE,
+        color = rl.YELLOW,
+    },
+    graph_object_function {
+        f = math.tan_f32,
+        point_count = proc() -> f32 { return graph_display_area().width },
+        style = .LINES,
+        thickness = POINT_SIZE,
+        color = rl.VIOLET,
+    },
+}
+
 main :: proc ()
 {
     rl.InitWindow(900, 900, "GraPhi")
@@ -62,13 +91,10 @@ main :: proc ()
             draw_vertical_step_indicators(graph, rl.GRAY)
             draw_horizontal_step_indicators(graph, rl.GRAY)
 
-            draw_values_in_graph([]f32 { 85, 70, 65, 75, 44, 54, 23, 60 }, graph, .LINES, POINT_SIZE, rl.GREEN)
-            draw_values_in_graph([]f32 { 85, 70, 65, 75, 44, 54, 23, 60 }, graph, .POINTS, POINT_SIZE, rl.BLUE)
-
-            draw_points_in_graph([]rl.Vector2 { {10, 9}, {1.8, 1.7}, {2.8, 9}, {5, 12} }, graph, .LINES, POINT_SIZE, rl.BLUE)
-
-            draw_function_in_graph(math.exp_f32, graph, graph_display_area().width, .LINES, POINT_SIZE, rl.YELLOW)
-            draw_function_in_graph(math.tan_f32, graph, graph_display_area().width, .LINES, POINT_SIZE, rl.VIOLET)
+            for o in objects
+            {
+                draw_object_in_graph(o, graph)
+            }
         rl.EndDrawing()
     }
 
