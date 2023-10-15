@@ -67,7 +67,6 @@ main :: proc ()
 
             draw_points_in_graph([]rl.Vector2 { {10, 9}, {1.8, 1.7}, {2.8, 9}, {5, 12} }, graph, .LINES, POINT_SIZE, rl.BLUE)
 
-            draw_function_in_graph(f, graph, graph_display_area().width, .LINES, POINT_SIZE, rl.GREEN)
             draw_function_in_graph(math.exp_f32, graph, graph_display_area().width, .LINES, POINT_SIZE, rl.YELLOW)
             draw_function_in_graph(math.tan_f32, graph, graph_display_area().width, .LINES, POINT_SIZE, rl.VIOLET)
         rl.EndDrawing()
