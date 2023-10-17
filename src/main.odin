@@ -19,32 +19,40 @@ MOVEMENT_SPEED :: 3.0
 
 TARGET_FPS :: 60
 
-objects := [?]graph_object {
-    graph_object_values {
-        values = { 85, 70, 65, 75, 44, 54, 23, 60 },
-        style = .LINES,
-        thickness = POINT_SIZE,
-        color = rl.GREEN,
+objects := [?]ui_object {
+    {
+        object = graph_object_values {
+            values = { 85, 70, 65, 75, 44, 54, 23, 60 },
+            style = .LINES,
+            thickness = POINT_SIZE,
+            color = rl.GREEN,
+        },
     },
-    graph_object_points {
-        points = { {10, 9}, {1.8, 1.7}, {2.8, 9}, {5, 12} },
-        style = .LINES,
-        thickness = POINT_SIZE,
-        color = rl.BLUE,
+    {
+        object = graph_object_points {
+            points = { {10, 9}, {1.8, 1.7}, {2.8, 9}, {5, 12} },
+            style = .LINES,
+            thickness = POINT_SIZE,
+            color = rl.BLUE,
+        },
     },
-    graph_object_function {
-        f = math.exp_f32,
-        point_count = proc() -> f32 { return graph_display_area().width },
-        style = .LINES,
-        thickness = POINT_SIZE,
-        color = rl.YELLOW,
+    {
+        object = graph_object_function {
+            f = math.exp_f32,
+            point_count = proc() -> f32 { return graph_display_area().width },
+            style = .LINES,
+            thickness = POINT_SIZE,
+            color = rl.YELLOW,
+        },
     },
-    graph_object_function {
-        f = math.tan_f32,
-        point_count = proc() -> f32 { return graph_display_area().width },
-        style = .LINES,
-        thickness = POINT_SIZE,
-        color = rl.VIOLET,
+    {
+        object = graph_object_function {
+            f = math.tan_f32,
+            point_count = proc() -> f32 { return graph_display_area().width },
+            style = .LINES,
+            thickness = POINT_SIZE,
+            color = rl.VIOLET,
+        },
     },
 }
 
@@ -59,6 +67,8 @@ main :: proc ()
  
     for (!rl.WindowShouldClose())
     {
+        mouse_pos := rl.GetMousePosition()
+
         /* Scale Controls */
         graph.scale -= rl.GetMouseWheelMove() * rl.GetFrameTime() * SCALE_FACTOR
         graph.scale = max(graph.scale, math.F32_EPSILON)
@@ -84,27 +94,82 @@ main :: proc ()
             graph.x_axis.offset -= rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
         }
 
+        //TODO: Clean up Code
+        yoffset : f32 = UI_OBJECT_SPACING
+
+        for _, i in objects
+        {
+            o := &objects[i]
+
+            multiplier := o.open ? get_graph_object_element_count(o.object) : 1
+            o.rect = rl.Rectangle { 0, yoffset, object_edit_area().width, f32(multiplier)*UI_OBJECT_HEIGHT }
+
+            if(rl.IsMouseButtonPressed(.LEFT) && is_point_in_rect(o.rect, mouse_pos))
+            {
+                o.open = !o.open
+            }
+
+            yoffset += o.rect.height + UI_OBJECT_SPACING
+        }
+
         rl.BeginDrawing()
             rl.ClearBackground(rl.BLACK)
-            rl.DrawFPS(10, 10)
 
             draw_vertical_step_indicators(graph, rl.GRAY)
             draw_horizontal_step_indicators(graph, rl.GRAY)
 
             for o in objects
             {
-                draw_object_in_graph(o, graph)
+                draw_object_in_graph(o.object, graph)
             }
+
+            rl.DrawRectangleRec(object_edit_area(), rl.GetColor(UI_OBJECT_SECTION_BACKGROUND_COLOR))            
+
+            //TODO: Clean up Code
+            text_buffer: [300]byte = {} 
+
+            for ui_o in objects
+            {
+                multiplier := ui_o.open ? get_graph_object_element_count(ui_o.object) : 1
+
+                rl.DrawRectangleRec(ui_o.rect, rl.ColorBrightness(rl.GetColor(UI_OBJECT_BACKGROUND_COLOR), 0.2))
+            
+                for i in 0..<multiplier
+                {
+                    subrect : rl.Rectangle = { ui_o.rect.x, ui_o.rect.y + f32(i) * UI_OBJECT_HEIGHT, ui_o.rect.width, UI_OBJECT_HEIGHT }
+                    
+                    switch o in ui_o.object
+                    {
+                        case graph_object_values:
+                            text := fmt.bprintf(text_buffer[:], "%f%c", o.values[i], rune(0))
+                            draw_text_centered(cast(cstring) &text_buffer[0], subrect, color = o.visual_options.color)
+                        case graph_object_points:
+                            text := fmt.bprintf(text_buffer[:], "%f %f%c", o.points[i].x, o.points[i].y, rune(0))
+                            draw_text_centered(cast(cstring) &text_buffer[0], subrect, color = o.visual_options.color)
+                        case graph_object_function:
+                            draw_text_centered("Function", subrect, color = o.visual_options.color)
+                    }
+                }
+            }
+
+            rl.DrawFPS(10, 10)
         rl.EndDrawing()
     }
 
     rl.CloseWindow()
 }
 
-graph_display_area :: proc() -> rl.Rectangle
+object_edit_area :: proc() -> rl.Rectangle
 {
     screen_size := screen_vector()
-    return { 0, 0, screen_size.x, screen_size.y }
+    return { 0, 0, screen_size.x*0.2, screen_size.y }
+}
+
+graph_display_area :: proc() -> rl.Rectangle
+{
+    object_area := object_edit_area()
+    screen_size := screen_vector()
+    return { object_area.width, 0, screen_size.x - object_area.width, screen_size.y }
 }
 
 screen_vector :: proc() -> rl.Vector2
