@@ -19,6 +19,11 @@ MOVEMENT_SPEED :: 3.0
 
 TARGET_FPS :: 60
 
+editor_tab := ui_editor_tab {
+    spacing = 20,
+    area = object_edit_area,
+}
+
 objects := [?]ui_object {
     {
         object = graph_object_values {
@@ -68,9 +73,10 @@ main :: proc ()
     for (!rl.WindowShouldClose())
     {
         mouse_pos := rl.GetMousePosition()
+        mouse_wheel_y := rl.GetMouseWheelMove()
 
         /* Scale Controls */
-        graph.scale -= rl.GetMouseWheelMove() * rl.GetFrameTime() * SCALE_FACTOR
+        graph.scale -= mouse_wheel_y * rl.GetFrameTime() * SCALE_FACTOR
         graph.scale = max(graph.scale, math.F32_EPSILON)
 
         /* Offset/Movement Controls */
@@ -94,23 +100,7 @@ main :: proc ()
             graph.x_axis.offset -= rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
         }
 
-        //TODO: Clean up Code
-        yoffset : f32 = UI_OBJECT_SPACING
-
-        for _, i in objects
-        {
-            o := &objects[i]
-
-            multiplier := o.open ? get_graph_object_element_count(o.object) : 1
-            o.rect = rl.Rectangle { 0, yoffset, object_edit_area().width, f32(multiplier)*UI_OBJECT_HEIGHT }
-
-            if(rl.IsMouseButtonPressed(.LEFT) && is_point_in_rect(o.rect, mouse_pos))
-            {
-                o.open = !o.open
-            }
-
-            yoffset += o.rect.height + UI_OBJECT_SPACING
-        }
+        check_ui_objects_interaction_in_tab(mouse_pos, objects[:], editor_tab)
 
         rl.BeginDrawing()
             rl.ClearBackground(rl.BLACK)
@@ -125,32 +115,7 @@ main :: proc ()
 
             rl.DrawRectangleRec(object_edit_area(), rl.GetColor(UI_OBJECT_SECTION_BACKGROUND_COLOR))            
 
-            //TODO: Clean up Code
-            text_buffer: [300]byte = {} 
-
-            for ui_o in objects
-            {
-                multiplier := ui_o.open ? get_graph_object_element_count(ui_o.object) : 1
-
-                rl.DrawRectangleRec(ui_o.rect, rl.ColorBrightness(rl.GetColor(UI_OBJECT_BACKGROUND_COLOR), 0.2))
-            
-                for i in 0..<multiplier
-                {
-                    subrect : rl.Rectangle = { ui_o.rect.x, ui_o.rect.y + f32(i) * UI_OBJECT_HEIGHT, ui_o.rect.width, UI_OBJECT_HEIGHT }
-                    
-                    switch o in ui_o.object
-                    {
-                        case graph_object_values:
-                            text := fmt.bprintf(text_buffer[:], "%f%c", o.values[i], rune(0))
-                            draw_text_centered(cast(cstring) &text_buffer[0], subrect, color = o.visual_options.color)
-                        case graph_object_points:
-                            text := fmt.bprintf(text_buffer[:], "%f %f%c", o.points[i].x, o.points[i].y, rune(0))
-                            draw_text_centered(cast(cstring) &text_buffer[0], subrect, color = o.visual_options.color)
-                        case graph_object_function:
-                            draw_text_centered("Function", subrect, color = o.visual_options.color)
-                    }
-                }
-            }
+            draw_ui_objects_in_tab(objects[:], editor_tab)
 
             rl.DrawFPS(10, 10)
         rl.EndDrawing()
