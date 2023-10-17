@@ -6,6 +6,7 @@ import rl "vendor:raylib"
 
 ui_editor_tab :: struct
 {
+    content_offset_y: f32,
     spacing: f32,
     area: responsive(rl.Rectangle),
 }
@@ -71,7 +72,7 @@ check_ui_objects_interaction_in_tab :: proc(mouse_pos: rl.Vector2, ui_objects: [
 {
     tab_area := resolve(rl.Rectangle, tab.area)
 
-    yoffset := tab.spacing
+    yoffset := tab.spacing - tab.content_offset_y
     base_rect := rl.Rectangle { tab_area.x, tab_area.y, tab_area.width, UI_OBJECT_HEIGHT }
 
     for _, i in objects
@@ -95,7 +96,7 @@ draw_ui_objects_in_tab :: proc(ui_objects: []ui_object, tab: ui_editor_tab)
 {
     tab_area := resolve(rl.Rectangle, tab.area)
 
-    yoffset := tab.spacing
+    yoffset := tab.spacing - tab.content_offset_y
     base_rect := rl.Rectangle { tab_area.x, tab_area.y, tab_area.width, UI_OBJECT_HEIGHT }
 
     for ui_o in objects

@@ -16,10 +16,14 @@ graph := graph_info {
 POINT_SIZE :: 4.0
 SCALE_FACTOR :: 10.0
 MOVEMENT_SPEED :: 3.0
+SCROLL_FACTOR :: 6.0
 
 TARGET_FPS :: 60
 
+scroll: f32 = 0.0
+
 editor_tab := ui_editor_tab {
+    content_offset_y = 0,
     spacing = 20,
     area = object_edit_area,
 }
@@ -74,33 +78,53 @@ main :: proc ()
     {
         mouse_pos := rl.GetMousePosition()
         mouse_wheel_y := rl.GetMouseWheelMove()
+        delta_time := rl.GetFrameTime()
 
-        /* Scale Controls */
-        graph.scale -= mouse_wheel_y * rl.GetFrameTime() * SCALE_FACTOR
-        graph.scale = max(graph.scale, math.F32_EPSILON)
+        // UI Object Interaction
+        total_height := calc_ui_objects_height(objects[:], editor_tab.spacing)
+        scroll_max := total_height - object_edit_area().height
 
-        /* Offset/Movement Controls */
-        if(rl.IsKeyPressed(.W) || rl.IsKeyDown(.W))
+        if(scroll_max > 0 && is_point_in_rect(object_edit_area(), mouse_pos))
         {
-            graph.y_axis.offset += rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
+            scroll -= mouse_wheel_y * rl.GetFrameTime() * SCROLL_FACTOR
+            scroll = scroll_max <= 0 ? 0 : clamp(scroll, 0, 1)
+        }
+        else if(scroll_max <= 0)
+        {
+            scroll = 0 
         }
 
-        if(rl.IsKeyPressed(.S) || rl.IsKeyDown(.S))
-        {
-            graph.y_axis.offset -= rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
-        }
-
-        if(rl.IsKeyPressed(.D) || rl.IsKeyDown(.D))
-        {
-            graph.x_axis.offset += rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
-        }
-
-        if(rl.IsKeyPressed(.A) || rl.IsKeyDown(.A))
-        {
-            graph.x_axis.offset -= rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
-        }
-
+        editor_tab.content_offset_y = scroll * scroll_max
         check_ui_objects_interaction_in_tab(mouse_pos, objects[:], editor_tab)
+    
+        // Graph Interaction
+        if(is_point_in_rect(graph_display_area(), mouse_pos))
+        {
+            /* Scale Controls */
+            graph.scale -= mouse_wheel_y * rl.GetFrameTime() * SCALE_FACTOR
+            graph.scale = max(graph.scale, math.F32_EPSILON)
+
+            /* Offset/Movement Controls */
+            if(rl.IsKeyPressed(.W) || rl.IsKeyDown(.W))
+            {
+                graph.y_axis.offset += rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
+            }
+
+            if(rl.IsKeyPressed(.S) || rl.IsKeyDown(.S))
+            {
+                graph.y_axis.offset -= rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
+            }
+
+            if(rl.IsKeyPressed(.D) || rl.IsKeyDown(.D))
+            {
+                graph.x_axis.offset += rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
+            }
+
+            if(rl.IsKeyPressed(.A) || rl.IsKeyDown(.A))
+            {
+                graph.x_axis.offset -= rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
+            }
+        }
 
         rl.BeginDrawing()
             rl.ClearBackground(rl.BLACK)
