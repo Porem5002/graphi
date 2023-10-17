@@ -86,7 +86,7 @@ main :: proc ()
 
         if(scroll_max > 0 && is_point_in_rect(object_edit_area(), mouse_pos))
         {
-            scroll -= mouse_wheel_y * rl.GetFrameTime() * SCROLL_FACTOR
+            scroll -= mouse_wheel_y * delta_time * SCROLL_FACTOR
             scroll = scroll_max <= 0 ? 0 : clamp(scroll, 0, 1)
         }
         else if(scroll_max <= 0)
@@ -101,28 +101,28 @@ main :: proc ()
         if(is_point_in_rect(graph_display_area(), mouse_pos))
         {
             /* Scale Controls */
-            graph.scale -= mouse_wheel_y * rl.GetFrameTime() * SCALE_FACTOR
+            graph.scale -= mouse_wheel_y * delta_time * SCALE_FACTOR
             graph.scale = max(graph.scale, math.F32_EPSILON)
 
             /* Offset/Movement Controls */
             if(rl.IsKeyPressed(.W) || rl.IsKeyDown(.W))
             {
-                graph.y_axis.offset += rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
+                graph.y_axis.offset += delta_time * MOVEMENT_SPEED * graph.scale
             }
 
             if(rl.IsKeyPressed(.S) || rl.IsKeyDown(.S))
             {
-                graph.y_axis.offset -= rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
+                graph.y_axis.offset -= delta_time * MOVEMENT_SPEED * graph.scale
             }
 
             if(rl.IsKeyPressed(.D) || rl.IsKeyDown(.D))
             {
-                graph.x_axis.offset += rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
+                graph.x_axis.offset += delta_time * MOVEMENT_SPEED * graph.scale
             }
 
             if(rl.IsKeyPressed(.A) || rl.IsKeyDown(.A))
             {
-                graph.x_axis.offset -= rl.GetFrameTime() * MOVEMENT_SPEED * graph.scale
+                graph.x_axis.offset -= delta_time * MOVEMENT_SPEED * graph.scale
             }
         }
 
