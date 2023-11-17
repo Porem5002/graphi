@@ -205,7 +205,12 @@ draw_points_in_graph :: proc(points: []rl.Vector2, graph: graph, using visual_op
 
 draw_mathexpr_in_graph :: proc(expr: ^mathexpr.ast, graph: graph, point_count: f32, using visual_options: visual_options)
 {
-    if(style == .POINTS)
+    if expr == nil
+    {
+        return
+    }
+
+    if style == .POINTS
     {
         for i in 0..=point_count
         {
@@ -214,7 +219,7 @@ draw_mathexpr_in_graph :: proc(expr: ^mathexpr.ast, graph: graph, point_count: f
             draw_point_in_graph({ x, y }, graph, thickness, color)
         }
     }
-    else if(style == .LINES)
+    else if style == .LINES
     {
         prev: rl.Vector2
         prev.x = graph.x_axis.offset
