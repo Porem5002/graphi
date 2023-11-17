@@ -125,7 +125,7 @@ collect_token_word :: proc(text: []rune) -> (tk: token, new_slice: []rune)
     {
         case "x": tk = { type = .VAR }
         case "e": tk = { type = .SPEC_NUMBER, as = special_number.E }
-        case "pi", "π": tk = { type = .FUNC, as = special_number.PI }
+        case "pi", "π": tk = { type = .SPEC_NUMBER, as = special_number.PI }
         
         case "sin": tk = { type = .FUNC, as = builtin_func_type.SIN }
         case "cos": tk = { type = .FUNC, as = builtin_func_type.COS }
