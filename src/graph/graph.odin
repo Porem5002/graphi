@@ -1,6 +1,7 @@
-package main
+package graph
 
 import "core:math"
+import "../mathexpr"
 
 import rl "vendor:raylib"
 
@@ -20,9 +21,7 @@ resolve :: proc($T: typeid, v: responsive(T)) -> T
     panic("unreachable")
 }
 
-plotable_function :: #type proc "contextless" (_: f32) -> f32
-
-graph_info :: struct
+graph :: struct
 {
     display_area: responsive(rl.Rectangle),
     x_axis: axis_segment,
@@ -50,47 +49,71 @@ visual_options :: struct
     color: rl.Color,
 }
 
-graph_object :: union
+object :: union
 {
-    graph_object_values,
-    graph_object_points,
-    graph_object_function,
+    object_values,
+    object_points,
+    object_function,
 }
 
-graph_object_values :: struct
+object_values :: struct
 {
     values: [dynamic]f32,
     using visual_options: visual_options,
 }
 
-graph_object_points :: struct
+object_points :: struct
 {
     points: [dynamic]rl.Vector2,
     using visual_options: visual_options,
 }
 
-graph_object_function :: struct
+object_function :: struct
 {
-    f: plotable_function,
+    text: string,
+    expr: ^mathexpr.ast,
     point_count: responsive(f32),
     using visual_options: visual_options,
 }
 
-draw_object_in_graph :: proc(object: graph_object, graph: graph_info)
+draw_objects_in_graph :: proc
 {
-    switch o in object
+    draw_object_in_graph,
+    draw_object_pool_in_graph,
+    draw_object_slice_in_graph,
+}
+
+draw_object_in_graph :: proc(obj: object, graph: graph)
+{
+    switch o in obj
     {
-        case graph_object_values:
+        case object_values:
             draw_values_in_graph(o.values[:], graph, o.visual_options)
-        case graph_object_points:
+        case object_points:
             draw_points_in_graph(o.points[:], graph, o.visual_options)
-        case graph_object_function:
+        case object_function:
             resolved_point_count := resolve(f32, o.point_count)
-            draw_function_in_graph(o.f, graph, resolved_point_count, o.visual_options)
+            draw_mathexpr_in_graph(o.expr, graph, resolved_point_count, o.visual_options)
     }
 }
 
-draw_vertical_step_indicators :: proc(graph: graph_info, color: rl.Color)
+draw_object_pool_in_graph :: proc(pool: object_pool, graph: graph)
+{
+    for o in pool.objects
+    {
+        draw_object_in_graph(o, graph)
+    }
+}
+
+draw_object_slice_in_graph :: proc(slice: []object, graph: graph)
+{
+    for o in slice
+    {
+        draw_object_in_graph(o, graph)
+    }
+}
+
+draw_vertical_step_indicators :: proc(graph: graph, color: rl.Color)
 {
     display_area := resolve(rl.Rectangle, graph.display_area)
     x_step_start, x_step_end := get_axis_step_index_interval(graph.x_axis, graph.scale)
@@ -102,7 +125,7 @@ draw_vertical_step_indicators :: proc(graph: graph_info, color: rl.Color)
     }
 }
 
-draw_horizontal_step_indicators :: proc(graph: graph_info, color: rl.Color)
+draw_horizontal_step_indicators :: proc(graph: graph, color: rl.Color)
 {
     display_area := resolve(rl.Rectangle, graph.display_area)
     y_step_start, y_step_end := get_axis_step_index_interval(graph.y_axis, graph.scale)
@@ -114,20 +137,20 @@ draw_horizontal_step_indicators :: proc(graph: graph_info, color: rl.Color)
     }
 }
 
-draw_point_in_graph :: proc(point: rl.Vector2, graph: graph_info, radius: f32, color: rl.Color)
+draw_point_in_graph :: proc(point: rl.Vector2, graph: graph, radius: f32, color: rl.Color)
 {
     screen_coords := map_to_coords(point, graph)
     rl.DrawCircleV(screen_coords, radius, color)
 }
 
-draw_line_in_graph :: proc(start: rl.Vector2, end: rl.Vector2, graph: graph_info, thickness: f32, color: rl.Color)
+draw_line_in_graph :: proc(start: rl.Vector2, end: rl.Vector2, graph: graph, thickness: f32, color: rl.Color)
 {
     start_screen_coords := map_to_coords(start, graph)
-    end_screen_coords := map_to_coords(end, graph) 
+    end_screen_coords := map_to_coords(end, graph)
     rl.DrawLineEx(start_screen_coords, end_screen_coords, thickness, color)
 }
 
-draw_values_in_graph :: proc(values: []f32, graph: graph_info, using visual_options: visual_options)
+draw_values_in_graph :: proc(values: []f32, graph: graph, using visual_options: visual_options)
 {
     if(len(values) == 1)
     {
@@ -154,7 +177,7 @@ draw_values_in_graph :: proc(values: []f32, graph: graph_info, using visual_opti
     }
 }
 
-draw_points_in_graph :: proc(points: []rl.Vector2, graph: graph_info, using visual_options: visual_options)
+draw_points_in_graph :: proc(points: []rl.Vector2, graph: graph, using visual_options: visual_options)
 {
     if(len(points) == 1)
     {
@@ -180,14 +203,14 @@ draw_points_in_graph :: proc(points: []rl.Vector2, graph: graph_info, using visu
     }
 }
 
-draw_function_in_graph :: proc(f: plotable_function, graph: graph_info, point_count: f32, using visual_options: visual_options)
+draw_mathexpr_in_graph :: proc(expr: ^mathexpr.ast, graph: graph, point_count: f32, using visual_options: visual_options)
 {
     if(style == .POINTS)
     {
         for i in 0..=point_count
         {
             x := graph.x_axis.offset + graph.x_axis.span * graph.scale * (f32(i) / f32(point_count))
-            y := f(x)
+            y := mathexpr.eval_ast(expr, x)
             draw_point_in_graph({ x, y }, graph, thickness, color)
         }
     }
@@ -195,14 +218,14 @@ draw_function_in_graph :: proc(f: plotable_function, graph: graph_info, point_co
     {
         prev: rl.Vector2
         prev.x = graph.x_axis.offset
-        prev.y = f(prev.x)
+        prev.y = mathexpr.eval_ast(expr, prev.x)
 
         for i in 1..=point_count
         {
             x := graph.x_axis.offset + graph.x_axis.span * graph.scale * (f32(i) / f32(point_count))
-            y := f(x)
+            y := mathexpr.eval_ast(expr, x)
 
-            if(converges(prev.x, x, f))
+            if(converges(prev.x, x, expr))
             {
                 draw_line_in_graph(prev, { x, y }, graph, thickness, color)
             }
@@ -212,22 +235,22 @@ draw_function_in_graph :: proc(f: plotable_function, graph: graph_info, point_co
     }
 }
 
-converges :: proc(x1: f32, x2: f32, f: plotable_function, threshold := 100) -> bool
+converges :: proc(x1: f32, x2: f32, expr: ^mathexpr.ast, threshold := 100) -> bool
 {
-    y1 := f(x1)
-    y2 := f(x2)
+    y1 := mathexpr.eval_ast(expr, x1)
+    y2 := mathexpr.eval_ast(expr, x2)
 
     return abs(y1 - y2) <= f32(threshold)
 }
 
-map_to_coords :: proc(point: rl.Vector2, graph: graph_info) -> rl.Vector2
+map_to_coords :: proc(point: rl.Vector2, graph: graph) -> rl.Vector2
 {
     x := map_to_x_coord(point.x, graph)
     y := map_to_y_coord(point.y, graph)
     return { x, y }
 }
 
-map_to_x_coord :: proc(value: f32, graph: graph_info) -> f32
+map_to_x_coord :: proc(value: f32, graph: graph) -> f32
 {
     display_area := resolve(rl.Rectangle, graph.display_area)
     x := map_to_axis_percent(value, graph.x_axis, graph.scale)
@@ -235,7 +258,7 @@ map_to_x_coord :: proc(value: f32, graph: graph_info) -> f32
     return x
 }
 
-map_to_y_coord :: proc(value: f32, graph: graph_info) -> f32
+map_to_y_coord :: proc(value: f32, graph: graph) -> f32
 {
     display_area := resolve(rl.Rectangle, graph.display_area)
     y := map_to_axis_percent(value, graph.y_axis, graph.scale)

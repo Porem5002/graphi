@@ -1,6 +1,10 @@
 package main
 
-import fmt "core:fmt"
+import "core:fmt"
+import "core:strings"
+
+import grh "graph"
+import "mathexpr"
 
 import rl "vendor:raylib" 
 
@@ -8,13 +12,13 @@ ui_editor_tab :: struct
 {
     content_offset_y: f32,
     spacing: f32,
-    area: responsive(rl.Rectangle),
+    area: grh.responsive(rl.Rectangle),
 }
 
 ui_object :: struct
 {
     open: bool,
-    object: graph_object,
+    object: ^grh.object,
 }
 
 UI_OBJECT_HEIGHT :: 100
@@ -44,11 +48,11 @@ get_ui_object_element_count :: proc(object: ui_object) -> int
 
     switch o in object.object
     {
-        case graph_object_values:
+        case grh.object_values:
             return len(o.values)
-        case graph_object_points:
+        case grh.object_points:
             return len(o.points)
-        case graph_object_function:
+        case grh.object_function:
             return 1
     }
 
@@ -70,12 +74,12 @@ calc_ui_objects_height :: proc(ui_objects: []ui_object, spacing: f32) -> f32
 
 check_ui_objects_interaction_in_tab :: proc(mouse_pos: rl.Vector2, ui_objects: []ui_object, tab: ui_editor_tab)
 {
-    tab_area := resolve(rl.Rectangle, tab.area)
+    tab_area := grh.resolve(rl.Rectangle, tab.area)
 
     yoffset := tab.spacing - tab.content_offset_y
     base_rect := rl.Rectangle { tab_area.x, tab_area.y, tab_area.width, UI_OBJECT_HEIGHT }
 
-    for _, i in objects
+    for _, i in ui_objects
     {
         ui_o := &ui_objects[i]
 
@@ -94,12 +98,12 @@ check_ui_objects_interaction_in_tab :: proc(mouse_pos: rl.Vector2, ui_objects: [
 
 draw_ui_objects_in_tab :: proc(ui_objects: []ui_object, tab: ui_editor_tab)
 {
-    tab_area := resolve(rl.Rectangle, tab.area)
+    tab_area := grh.resolve(rl.Rectangle, tab.area)
 
     yoffset := tab.spacing - tab.content_offset_y
     base_rect := rl.Rectangle { tab_area.x, tab_area.y, tab_area.width, UI_OBJECT_HEIGHT }
 
-    for ui_o in objects
+    for ui_o in ui_objects
     {
         element_count := get_ui_object_element_count(ui_o)
     
@@ -112,14 +116,16 @@ draw_ui_objects_in_tab :: proc(ui_objects: []ui_object, tab: ui_editor_tab)
 
             switch o in ui_o.object
             {
-                case graph_object_values:
+                case grh.object_values:
                     text := ui_text_printf("%f", o.values[i])
                     draw_text_centered(text, rect, color = o.visual_options.color)
-                case graph_object_points:
+                case grh.object_points:
                     text := ui_text_printf("%f %f", o.points[i].x, o.points[i].y)
                     draw_text_centered(text, rect, color = o.visual_options.color)
-                case graph_object_function:
-                    draw_text_centered("Function", rect, color = o.visual_options.color)
+                case grh.object_function:
+                    text := strings.clone_to_cstring(o.text)
+                    draw_text_centered(text, rect, color = o.visual_options.color)
+                    delete(text)
             }
         
             yoffset += rect.height

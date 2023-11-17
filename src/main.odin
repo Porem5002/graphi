@@ -4,12 +4,14 @@ import "core:fmt"
 import "core:math"
 import "core:c"
 
+import grh "graph"
+
 import rl "vendor:raylib"
 
-graph := graph_info {
+graph := grh.graph {
     display_area = graph_display_area,
-    x_axis = axis_segment { offset = -1, span = 2, step = 0.5 },
-    y_axis = axis_segment { offset = -1, span = 2, step = 0.5 },
+    x_axis = { offset = -1, span = 2, step = 0.5 },
+    y_axis = { offset = -1, span = 2, step = 0.5 },
     scale = 1.0
 }
 
@@ -28,44 +30,13 @@ editor_tab := ui_editor_tab {
     area = object_edit_area,
 }
 
-objects := [?]ui_object {
-    {
-        object = graph_object_values {
-            values = { 85, 70, 65, 75, 44, 54, 23, 60 },
-            style = .LINES,
-            thickness = POINT_SIZE,
-            color = rl.GREEN,
-        },
-    },
-    {
-        object = graph_object_points {
-            points = { {10, 9}, {1.8, 1.7}, {2.8, 9}, {5, 12} },
-            style = .LINES,
-            thickness = POINT_SIZE,
-            color = rl.BLUE,
-        },
-    },
-    {
-        object = graph_object_function {
-            f = math.exp_f32,
-            point_count = proc() -> f32 { return graph_display_area().width },
-            style = .LINES,
-            thickness = POINT_SIZE,
-            color = rl.YELLOW,
-        },
-    },
-    {
-        object = graph_object_function {
-            f = math.tan_f32,
-            point_count = proc() -> f32 { return graph_display_area().width },
-            style = .LINES,
-            thickness = POINT_SIZE,
-            color = rl.VIOLET,
-        },
-    },
+ui_objects: [dynamic]ui_object
+
+objects := grh.object_pool {
+    on_object_added = register_ui_object,
 }
 
-main :: proc ()
+main :: proc()
 {
     rl.InitWindow(900, 900, "GraPhi")
     
@@ -73,7 +44,13 @@ main :: proc ()
     rl.SetWindowState(flags)
 
     rl.SetTargetFPS(TARGET_FPS)
- 
+
+    grh.add_values_to_pool(&objects, { 1, 5, 3, -2 }, color = rl.GREEN)
+    grh.add_points_to_pool(&objects, { {1, 2} , {3, 4} }, color = rl.GREEN)
+    grh.add_mathexpr_to_pool(&objects, "sin(x) + x", graph_display_area_width, color = rl.YELLOW)
+    grh.add_mathexpr_to_pool(&objects, "5", graph_display_area_width, color = rl.BLUE)
+    grh.add_mathexpr_to_pool(&objects, "-x * x", graph_display_area_width, color = rl.RED)
+
     for (!rl.WindowShouldClose())
     {
         mouse_pos := rl.GetMousePosition()
@@ -81,7 +58,7 @@ main :: proc ()
         delta_time := rl.GetFrameTime()
 
         // UI Object Interaction
-        total_height := calc_ui_objects_height(objects[:], editor_tab.spacing)
+        total_height := calc_ui_objects_height(ui_objects[:], editor_tab.spacing)
         scroll_max := total_height - object_edit_area().height
 
         if(scroll_max > 0 && is_point_in_rect(object_edit_area(), mouse_pos))
@@ -95,7 +72,7 @@ main :: proc ()
         }
 
         editor_tab.content_offset_y = scroll * scroll_max
-        check_ui_objects_interaction_in_tab(mouse_pos, objects[:], editor_tab)
+        check_ui_objects_interaction_in_tab(mouse_pos, ui_objects[:], editor_tab)
     
         // Graph Interaction
         if(is_point_in_rect(graph_display_area(), mouse_pos))
@@ -129,17 +106,13 @@ main :: proc ()
         rl.BeginDrawing()
             rl.ClearBackground(rl.BLACK)
 
-            draw_vertical_step_indicators(graph, rl.GRAY)
-            draw_horizontal_step_indicators(graph, rl.GRAY)
-
-            for o in objects
-            {
-                draw_object_in_graph(o.object, graph)
-            }
+            grh.draw_vertical_step_indicators(graph, rl.GRAY)
+            grh.draw_horizontal_step_indicators(graph, rl.GRAY)
+            grh.draw_objects_in_graph(objects, graph)
 
             rl.DrawRectangleRec(object_edit_area(), rl.GetColor(UI_OBJECT_SECTION_BACKGROUND_COLOR))            
 
-            draw_ui_objects_in_tab(objects[:], editor_tab)
+            draw_ui_objects_in_tab(ui_objects[:], editor_tab)
 
             rl.DrawFPS(10, 10)
         rl.EndDrawing()
@@ -161,6 +134,11 @@ graph_display_area :: proc() -> rl.Rectangle
     return { object_area.width, 0, screen_size.x - object_area.width, screen_size.y }
 }
 
+graph_display_area_width :: proc() -> f32
+{
+    return graph_display_area().width
+}
+
 screen_vector :: proc() -> rl.Vector2
 {
     x, y: f32 = ---, ---
@@ -178,4 +156,10 @@ screen_vector :: proc() -> rl.Vector2
     }
 
     return { x, y }
+}
+
+register_ui_object :: proc(obj: ^grh.object)
+{
+    ui_obj := ui_object { object = obj }
+    append(&ui_objects, ui_obj)
 }
