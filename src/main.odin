@@ -38,6 +38,7 @@ objects := grh.object_pool {
 
 main :: proc()
 {
+    text_input_init()
     rl.InitWindow(900, 900, "GraPhi")
     
     flags := rl.ConfigFlags { rl.ConfigFlag.WINDOW_RESIZABLE }
@@ -73,7 +74,14 @@ main :: proc()
 
         editor_tab.content_offset_y = scroll * scroll_max
         check_ui_objects_interaction_in_tab(mouse_pos, ui_objects[:], editor_tab)
-    
+
+        if rl.IsKeyPressed(.ENTER)
+        {
+            text_input_unbind()
+        }
+
+        text_input_update()
+
         // Graph Interaction
         if(is_point_in_rect(graph_display_area(), mouse_pos))
         {

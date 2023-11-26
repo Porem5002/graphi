@@ -1,5 +1,7 @@
 package graph
 
+import "core:strings"
+
 import "../mathexpr"
 
 import rl "vendor:raylib"
@@ -63,7 +65,7 @@ add_points_to_pool :: proc(pool: ^object_pool, points: []rl.Vector2, style := vi
 add_mathexpr_to_pool :: proc(pool: ^object_pool, text_expr: string, point_count: responsive(f32), style := visual_style.LINES, thickness: f32 = BASE_THICKNESS, color := rl.RED) -> ^object
 {
     o := object_function {
-        text = text_expr,
+        text = strings.clone(text_expr),
         expr = mathexpr.parse(text_expr),
         point_count = point_count,
         visual_options = { style, thickness, color },
@@ -102,7 +104,7 @@ update_mathexpr_object :: proc(obj: ^object, text_expr: string) -> bool
 
     //TODO: Correctly convert from other object types
     o := &obj.(object_function)
-    o.text = text_expr
+    o.text = strings.clone(text_expr)
     o.expr = mathexpr.parse(text_expr)
     return o.expr != nil
 }
@@ -122,7 +124,11 @@ clean_object :: proc(obj: ^object)
                 delete(o.points)
             }
         case object_function:
-            o.text = ""
+            if o.text != ""
+            {
+                delete(o.text)
+                o.text = ""
+            }
             if o.expr != nil
             {
                 free(o.expr)
