@@ -21,7 +21,9 @@ token_type :: enum
     PLUS,
     MINUS,
     ASTERISK,
+    CARROT,
     SLASH,
+    PERCENTAGE,
 
     PAREN_OPEN,
     PAREN_CLOSE,
@@ -45,32 +47,6 @@ parser :: struct
 {
     text: []rune,
     text_section: []rune, 
-}
-
-syms_to_tokens: map[string] token = {
-    "e" = { type = .SPEC_NUMBER, as = special_number.E },
-    "pi"= { type = .SPEC_NUMBER, as = special_number.PI },
-    
-    "x" = { type = .VAR },
-    
-    "sin" = { type = .FUNC, as = builtin_func_type.SIN },
-    "cos" = { type = .FUNC, as = builtin_func_type.COS },
-    "tan" = { type = .FUNC, as = builtin_func_type.TAN },
-    "cosec" = { type = .FUNC, as = builtin_func_type.COSEC },
-    "sec" = { type = .FUNC, as = builtin_func_type.SEC },
-    "cot" = { type = .FUNC, as = builtin_func_type.COT },
-    "ln" = { type = .FUNC, as = builtin_func_type.LN },
-    "sqrt" = { type = .FUNC, as = builtin_func_type.SQRT },
-
-    "|"= { type = .PIPE },
-    
-    "+"= { type = .PLUS },
-    "-"= { type = .MINUS },
-    "*"= { type = .ASTERISK },
-    "/"= { type = .SLASH },
-
-    "("= { type = .PAREN_OPEN },
-    ")"= { type = .PAREN_CLOSE },
 }
 
 next_token :: proc(text: []rune) -> (tk: token, new_slice: []rune)
@@ -103,7 +79,9 @@ next_token :: proc(text: []rune) -> (tk: token, new_slice: []rune)
         case '+': tk = { type = .PLUS }
         case '-': tk = { type = .MINUS }
         case '*': tk = { type = .ASTERISK }
+        case '^': tk = { type = .CARROT }
         case '/': tk = { type = .SLASH }
+        case '%': tk = { type = .PERCENTAGE }
         case '(': tk = { type = .PAREN_OPEN }
         case ')': tk = { type = .PAREN_CLOSE }
         case: return { type = .ERROR }, {}
@@ -135,6 +113,7 @@ collect_token_word :: proc(text: []rune) -> (tk: token, new_slice: []rune)
         case "sec": tk ={ type = .FUNC, as = builtin_func_type.SEC }
         case "cot": tk = { type = .FUNC, as = builtin_func_type.COT }
 
+        case "exp": tk = { type = .FUNC, as = builtin_func_type.EXP }
         case "ln": tk = { type = .FUNC, as = builtin_func_type.LN }
         case "sqrt": tk = { type = .FUNC, as = builtin_func_type.SQRT }
         case: return { type = .ERROR }, {}
@@ -229,7 +208,11 @@ parse_binop :: proc(p: ^parser) -> ^ast
         case .MINUS:
             op = .SUB
         case .ASTERISK:
-            op = .MULT 
+            op = .MULT
+        case .PERCENTAGE:
+            op = .MOD
+        case .CARROT:
+            op = .POW
         case .SLASH:
             op = .DIV
         case .PIPE, .PAREN_CLOSE, .END:

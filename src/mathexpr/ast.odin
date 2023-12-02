@@ -19,7 +19,9 @@ binop_type :: enum
     ADD,
     SUB,
     MULT,
+    POW,
     DIV,
+    MOD,
 }
 
 builtin_func_type :: enum
@@ -32,6 +34,7 @@ builtin_func_type :: enum
     SEC,
     COT,
 
+    EXP,
     LN,
     SQRT,
 }
@@ -129,8 +132,12 @@ eval_binop :: proc(expr: ^ast_binop, x: f32) -> f32
             return a - b
         case .MULT:
             return a * b
+        case .POW:
+            return math.pow(a,b)
         case .DIV:
             return a / b
+        case .MOD:
+            return math.mod(a,b)
     }
 
     panic("unreachable")
@@ -154,6 +161,8 @@ eval_builtin_func :: proc(expr: ^ast_builtin_func, x: f32) -> f32
             return 1 / math.cos(input)
         case .COT:
             return 1 / math.tan(input)
+        case .EXP:
+            return math.exp(input)
         case .LN:
             return math.ln(input)
         case .SQRT:
