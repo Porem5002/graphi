@@ -76,6 +76,25 @@ object_function :: struct
     using visual_options: visual_options,
 }
 
+object_type :: enum
+{
+    VALUES,
+    POINTS,
+    MATHEXPR,
+}
+
+get_object_type :: proc(o: object) -> object_type
+{
+    switch _ in o
+    {
+        case object_values: return .VALUES
+        case object_points: return .POINTS
+        case object_function: return .MATHEXPR
+    }
+
+    panic("unreachable")
+}
+
 draw_objects_in_graph :: proc
 {
     draw_object_in_graph,

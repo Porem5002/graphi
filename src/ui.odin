@@ -94,12 +94,15 @@ check_ui_objects_interaction_in_tab :: proc(mouse_pos: rl.Vector2, ui_objects: [
 
         if(rl.IsMouseButtonPressed(.RIGHT) && is_point_in_rect(rect, mouse_pos))
         {
-            //TODO: Handle non function objects correctly 
-            init_text := ui_o.object.(grh.object_function).text
-            text_input_bind(init_text, ui_o.object, proc(dest: rawptr, s: string) {
-                dest := cast(^grh.object) dest
-                grh.update_mathexpr_object(dest, s)
-            })
+            //TODO: Allow editing of other object types
+            if grh.get_object_type(ui_o.object^) == .MATHEXPR
+            {
+                init_text := ui_o.object.(grh.object_function).text
+                text_input_bind(init_text, ui_o.object, proc(event_data: rawptr, s: string) {
+                    dest := cast(^grh.object) event_data
+                    grh.update_mathexpr_object(dest, s)
+                })
+            }
         }
 
         yoffset += tab.spacing + rect.height * f32(element_count)
