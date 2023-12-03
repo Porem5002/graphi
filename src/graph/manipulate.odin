@@ -36,19 +36,6 @@ add_to_pool :: proc(pool: ^object_pool, o: object) -> ^object
     return obj_ptr
 }
 
-add_values_to_pool :: proc(pool: ^object_pool, values: []f32, style := visual_style.LINES, thickness: f32 = BASE_THICKNESS, color := rl.RED) -> ^object
-{
-    vs: [dynamic]f32
-    append(&vs, ..values)
-
-    o := object_values {
-        values = vs,
-        visual_options = { style, thickness, color },
-    }
-
-    return add_to_pool(pool, o)
-}
-
 add_points_to_pool :: proc(pool: ^object_pool, points: []rl.Vector2, style := visual_style.LINES, thickness: f32 = BASE_THICKNESS, color := rl.RED) -> ^object
 {
     ps: [dynamic]rl.Vector2
@@ -72,18 +59,6 @@ add_mathexpr_to_pool :: proc(pool: ^object_pool, text_expr: string, point_count:
     }
 
     return add_to_pool(pool, o)
-}
-
-update_values_object :: proc(obj: ^object, values: []f32)
-{
-    clean_object(obj)
-
-    vs: [dynamic]f32
-    append(&vs, ..values)
-
-    //TODO: Correctly convert from other object types
-    o := &obj.(object_values)
-    o.values = vs
 }
 
 update_points_object :: proc(obj: ^object, points: []rl.Vector2)
@@ -113,11 +88,6 @@ clean_object :: proc(obj: ^object)
 {
     switch o in obj
     {
-        case object_values:
-            if o.values != nil
-            {
-                delete(o.values)
-            }
         case object_points:
             if o.points != nil
             {

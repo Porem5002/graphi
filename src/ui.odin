@@ -48,8 +48,6 @@ get_ui_object_element_count :: proc(object: ui_object) -> int
 
     switch o in object.object
     {
-        case grh.object_values:
-            return len(o.values)
         case grh.object_points:
             return len(o.points)
         case grh.object_function:
@@ -129,9 +127,6 @@ draw_ui_objects_in_tab :: proc(ui_objects: []ui_object, tab: ui_editor_tab)
 
             switch o in ui_o.object
             {
-                case grh.object_values:
-                    text := ui_text_printf("%f", o.values[i])
-                    draw_text_centered(text, rect, color = o.visual_options.color)
                 case grh.object_points:
                     text := ui_text_printf("%f %f", o.points[i].x, o.points[i].y)
                     draw_text_centered(text, rect, color = o.visual_options.color)

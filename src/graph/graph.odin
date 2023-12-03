@@ -51,15 +51,8 @@ visual_options :: struct
 
 object :: union
 {
-    object_values,
     object_points,
     object_function,
-}
-
-object_values :: struct
-{
-    values: [dynamic]f32,
-    using visual_options: visual_options,
 }
 
 object_points :: struct
@@ -78,7 +71,6 @@ object_function :: struct
 
 object_type :: enum
 {
-    VALUES,
     POINTS,
     MATHEXPR,
 }
@@ -87,7 +79,6 @@ get_object_type :: proc(o: object) -> object_type
 {
     switch _ in o
     {
-        case object_values: return .VALUES
         case object_points: return .POINTS
         case object_function: return .MATHEXPR
     }
@@ -106,8 +97,6 @@ draw_object_in_graph :: proc(obj: object, graph: graph)
 {
     switch o in obj
     {
-        case object_values:
-            draw_values_in_graph(o.values[:], graph, o.visual_options)
         case object_points:
             draw_points_in_graph(o.points[:], graph, o.visual_options)
         case object_function:

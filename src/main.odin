@@ -46,7 +46,6 @@ main :: proc()
 
     rl.SetTargetFPS(TARGET_FPS)
 
-    grh.add_values_to_pool(&objects, { 1, 5, 3, -2 }, color = rl.GREEN)
     grh.add_points_to_pool(&objects, { {1, 2} , {3, 4} }, color = rl.GREEN)
     grh.add_mathexpr_to_pool(&objects, "sin(x) + x", graph_display_area_width, color = rl.YELLOW)
     grh.add_mathexpr_to_pool(&objects, "5", graph_display_area_width, color = rl.BLUE)
