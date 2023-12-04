@@ -35,6 +35,23 @@ is_point_in_rect :: proc(rect: rl.Rectangle, point: rl.Vector2) -> bool
            point.y >= rect.y && point.y <= rect.y + rect.height 
 }
 
+get_dropdown_index_from_point :: proc(first_item: rl.Rectangle, item_count: int, point: rl.Vector2) -> (int, bool)
+{
+    curr_item := first_item
+
+    for i in 0..<item_count
+    {
+        if is_point_in_rect(curr_item, point)
+        {
+            return i, true
+        }
+
+        curr_item.y += curr_item.height
+    }
+
+    return 0, false
+}
+
 ui_text_printf :: proc(format: string, args: ..any) -> cstring
 {
     str := fmt.bprintf(text_buffer[:len(text_buffer)-1], format, ..args)
@@ -90,15 +107,25 @@ check_ui_objects_interaction_in_tab :: proc(mouse_pos: rl.Vector2, ui_objects: [
             ui_o.open = !ui_o.open
         }
 
-        if(rl.IsMouseButtonPressed(.RIGHT) && is_point_in_rect(rect, mouse_pos))
+        elem_i, is_mouse_in_elem := get_dropdown_index_from_point(rect, element_count, mouse_pos)
+
+        if(rl.IsMouseButtonPressed(.RIGHT) && is_mouse_in_elem)
         {
             //TODO: Allow editing of other object types
             if grh.get_object_type(ui_o.object^) == .MATHEXPR
-            {
+            { 
                 init_text := ui_o.object.(grh.object_function).text
-                text_input_bind(init_text, ui_o.object, proc(event_data: rawptr, s: string) {
-                    dest := cast(^grh.object) event_data
-                    grh.update_mathexpr_object(dest, s)
+                text_input_bind(init_text, { ui_o.object, 0 }, proc(event_data: text_input_event_data, s: string)
+                {
+                    grh.update_mathexpr_object(event_data.o, s)
+                })
+            }
+            else
+            {
+                init_text := ui_o.object.(grh.object_points).texts[elem_i]
+                text_input_bind(init_text, { ui_o.object, elem_i }, proc(event_data: text_input_event_data, s: string)
+                {
+                    grh.update_point_in_object(event_data.o, s, event_data.i)
                 })
             }
         }
@@ -128,12 +155,13 @@ draw_ui_objects_in_tab :: proc(ui_objects: []ui_object, tab: ui_editor_tab)
             switch o in ui_o.object
             {
                 case grh.object_points:
-                    text := ui_text_printf("%f %f", o.points[i].x, o.points[i].y)
+                    text := strings.clone_to_cstring(o.texts[i])
+                    defer delete(text) 
                     draw_text_centered(text, rect, color = o.visual_options.color)
                 case grh.object_function:
                     text := strings.clone_to_cstring(o.text)
+                    defer delete(text)
                     draw_text_centered(text, rect, color = o.visual_options.color)
-                    delete(text)
             }
         
             yoffset += rect.height

@@ -1,6 +1,7 @@
 package graph
 
 import "core:strings"
+import "core:fmt"
 
 import "../mathexpr"
 
@@ -36,14 +37,15 @@ add_to_pool :: proc(pool: ^object_pool, o: object) -> ^object
     return obj_ptr
 }
 
-add_points_to_pool :: proc(pool: ^object_pool, points: []rl.Vector2, style := visual_style.LINES, thickness: f32 = BASE_THICKNESS, color := rl.RED) -> ^object
+add_points_to_pool :: proc(pool: ^object_pool, text_points: []string, style := visual_style.LINES, thickness: f32 = BASE_THICKNESS, color := rl.RED) -> ^object
 {
-    ps: [dynamic]rl.Vector2
-    append(&ps, ..points)
-
-    o := object_points {
-        points = ps,
+    o: object = object_points {
         visual_options = { style, thickness, color },
+    }
+
+    for text, i in text_points
+    {
+        update_point_in_object(&o, text, i)
     }
 
     return add_to_pool(pool, o)
@@ -61,16 +63,24 @@ add_mathexpr_to_pool :: proc(pool: ^object_pool, text_expr: string, point_count:
     return add_to_pool(pool, o)
 }
 
-update_points_object :: proc(obj: ^object, points: []rl.Vector2)
+update_point_in_object :: proc(obj: ^object, text: string, index: int)
 {
-    clean_object(obj)
-
-    ps: [dynamic]rl.Vector2
-    append(&ps, ..points)
-
     //TODO: Correctly convert from other object types
     o := &obj.(object_points)
-    o.points = ps
+
+    if len(o.points) <= index
+    {
+        append(&o.texts, "")
+        append(&o.points, rl.Vector2 {})
+    }
+
+    if o.texts[index] != ""
+    {
+        delete(o.texts[index])
+    }
+
+    o.texts[index] = strings.clone(text)
+    o.points[index] = parse_point(text).? or_else {}
 }
 
 update_mathexpr_object :: proc(obj: ^object, text_expr: string) -> bool

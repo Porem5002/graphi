@@ -2,16 +2,24 @@ package main
 
 import "core:strings"
 
+import grh "./graph"
+
 import rl "vendor:raylib"
 
-text_update_event :: #type proc(event_data: rawptr, new_text: string)
+text_update_event :: #type proc(event_data: text_input_event_data, new_text: string)
+
+text_input_event_data :: struct
+{
+    o: ^grh.object,
+    i: int
+}
 
 text_input_state :: struct
 {
     active: bool,
     text_builder: strings.Builder,
 
-    event_data: rawptr,
+    event_data: text_input_event_data,
     on_text_update: text_update_event,
 }
 
@@ -22,7 +30,7 @@ text_input_init :: proc()
     text_input.text_builder = strings.builder_make()
 }
 
-text_input_bind :: proc(init_text: string, event_data: rawptr, on_text_update: text_update_event)
+text_input_bind :: proc(init_text: string, event_data: text_input_event_data, on_text_update: text_update_event)
 {
     text_input.active = true
     text_input.event_data = event_data

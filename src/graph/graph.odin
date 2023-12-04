@@ -57,6 +57,7 @@ object :: union
 
 object_points :: struct
 {
+    texts: [dynamic]string,
     points: [dynamic]rl.Vector2,
     using visual_options: visual_options,
 }
