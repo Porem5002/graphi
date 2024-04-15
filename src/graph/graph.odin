@@ -59,6 +59,8 @@ object_points :: struct
 {
     texts: [dynamic]string,
     points: [dynamic]rl.Vector2,
+    
+    open: bool,
     using visual_options: visual_options,
 }
 
@@ -91,7 +93,6 @@ draw_objects_in_graph :: proc
 {
     draw_object_in_graph,
     draw_object_pool_in_graph,
-    draw_object_slice_in_graph,
 }
 
 draw_object_in_graph :: proc(obj: object, graph: graph)
@@ -106,19 +107,11 @@ draw_object_in_graph :: proc(obj: object, graph: graph)
     }
 }
 
-draw_object_pool_in_graph :: proc(pool: object_pool, graph: graph)
+draw_object_pool_in_graph :: proc(pool: object_const_pool, graph: graph)
 {
-    for o in pool.objects
+    for o in pool
     {
-        draw_object_in_graph(o, graph)
-    }
-}
-
-draw_object_slice_in_graph :: proc(slice: []object, graph: graph)
-{
-    for o in slice
-    {
-        draw_object_in_graph(o, graph)
+        draw_object_in_graph(o^, graph)
     }
 }
 

@@ -24,17 +24,7 @@ TARGET_FPS :: 60
 
 scroll: f32 = 0.0
 
-editor_tab := ui_editor_tab {
-    content_offset_y = 0,
-    spacing = 20,
-    area = object_edit_area,
-}
-
-ui_objects: [dynamic]ui_object
-
-objects := grh.object_pool {
-    on_object_added = register_ui_object,
-}
+objects := grh.object_pool {}
 
 main :: proc()
 {
@@ -46,10 +36,17 @@ main :: proc()
 
     rl.SetTargetFPS(TARGET_FPS)
 
-    grh.add_points_to_pool(&objects, { "1, 2" , "3, 4" }, color = rl.GREEN)
-    grh.add_mathexpr_to_pool(&objects, "sin(x) + x", graph_display_area_width, color = rl.YELLOW)
-    grh.add_mathexpr_to_pool(&objects, "5", graph_display_area_width, color = rl.BLUE)
-    grh.add_mathexpr_to_pool(&objects, "-x * x", graph_display_area_width, color = rl.RED)
+    tab := ui_editor_tab {
+        content_offset_y = 0,
+        area = object_edit_area(),
+        spacing = UI_OBJECT_SPACING,
+        obj_height = UI_OBJECT_HEIGHT
+    }
+
+    append(&objects, grh.create_points({ "1, 2" , "2, 4", "3, 6", "4, 8" }, color = rl.GREEN))
+    append(&objects, grh.create_mathexpr("sin(x) + x", graph_display_area_width, color = rl.YELLOW))
+    append(&objects, grh.create_mathexpr("5", graph_display_area_width, color = rl.BLUE))
+    append(&objects, grh.create_mathexpr("-x * x", graph_display_area_width, color = rl.RED))
 
     for (!rl.WindowShouldClose())
     {
@@ -57,22 +54,24 @@ main :: proc()
         mouse_wheel_y := rl.GetMouseWheelMove()
         delta_time := rl.GetFrameTime()
 
-        // UI Object Interaction
-        total_height := calc_ui_objects_height(ui_objects[:], editor_tab.spacing)
-        scroll_max := total_height - object_edit_area().height
+        tab.area = object_edit_area()
 
-        if(scroll_max > 0 && is_point_in_rect(object_edit_area(), mouse_pos))
+        // UI Object Interaction
+        total_height := get_full_height(tab, objects[:])
+        scroll_max := total_height - tab.area.height
+
+        if(scroll_max > 0 && rl.CheckCollisionPointRec(mouse_pos, tab.area))
         {
             scroll -= mouse_wheel_y * delta_time * SCROLL_FACTOR
             scroll = scroll_max <= 0 ? 0 : clamp(scroll, 0, 1)
         }
         else if(scroll_max <= 0)
         {
-            scroll = 0 
+            scroll = 0
         }
 
-        editor_tab.content_offset_y = scroll * scroll_max
-        check_ui_objects_interaction_in_tab(mouse_pos, ui_objects[:], editor_tab)
+        tab.content_offset_y = scroll * scroll_max
+        handle_input_for_objects_in_tab(tab, mouse_pos, objects[:])
 
         if rl.IsKeyPressed(.ENTER)
         {
@@ -82,7 +81,7 @@ main :: proc()
         text_input_update()
 
         // Graph Interaction
-        if(is_point_in_rect(graph_display_area(), mouse_pos))
+        if(rl.CheckCollisionPointRec(mouse_pos, graph_display_area()))
         {
             /* Scale Controls */
             graph.scale -= mouse_wheel_y * delta_time * SCALE_FACTOR
@@ -115,11 +114,11 @@ main :: proc()
 
             grh.draw_vertical_step_indicators(graph, rl.GRAY)
             grh.draw_horizontal_step_indicators(graph, rl.GRAY)
-            grh.draw_objects_in_graph(objects, graph)
+            grh.draw_objects_in_graph(objects[:], graph)
 
             rl.DrawRectangleRec(object_edit_area(), rl.GetColor(UI_OBJECT_SECTION_BACKGROUND_COLOR))            
 
-            draw_ui_objects_in_tab(ui_objects[:], editor_tab)
+            draw_objects_in_tab(tab, objects[:])
 
             rl.DrawFPS(10, 10)
         rl.EndDrawing()
@@ -163,10 +162,4 @@ screen_vector :: proc() -> rl.Vector2
     }
 
     return { x, y }
-}
-
-register_ui_object :: proc(obj: ^grh.object)
-{
-    ui_obj := ui_object { object = obj }
-    append(&ui_objects, ui_obj)
 }

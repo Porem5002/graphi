@@ -11,14 +11,9 @@ import rl "vendor:raylib"
 ui_editor_tab :: struct
 {
     content_offset_y: f32,
+    obj_height: f32,
     spacing: f32,
-    area: grh.responsive(rl.Rectangle),
-}
-
-ui_object :: struct
-{
-    open: bool,
-    object: ^grh.object,
+    area: rl.Rectangle,
 }
 
 UI_OBJECT_HEIGHT :: 100
@@ -29,29 +24,6 @@ UI_OBJECT_SECTION_BACKGROUND_COLOR :: 0x111211ff
 
 text_buffer: [300]byte = {}
 
-is_point_in_rect :: proc(rect: rl.Rectangle, point: rl.Vector2) -> bool
-{
-    return point.x >= rect.x && point.x <= rect.x + rect.width &&
-           point.y >= rect.y && point.y <= rect.y + rect.height 
-}
-
-get_dropdown_index_from_point :: proc(first_item: rl.Rectangle, item_count: int, point: rl.Vector2) -> (int, bool)
-{
-    curr_item := first_item
-
-    for i in 0..<item_count
-    {
-        if is_point_in_rect(curr_item, point)
-        {
-            return i, true
-        }
-
-        curr_item.y += curr_item.height
-    }
-
-    return 0, false
-}
-
 ui_text_printf :: proc(format: string, args: ..any) -> cstring
 {
     str := fmt.bprintf(text_buffer[:len(text_buffer)-1], format, ..args)
@@ -59,14 +31,12 @@ ui_text_printf :: proc(format: string, args: ..any) -> cstring
     return cast(cstring) &text_buffer[0] 
 }
 
-get_ui_object_element_count :: proc(object: ui_object) -> int
+get_ui_object_element_count :: proc(obj: grh.object) -> int
 {
-    if(!object.open) do return 1
-
-    switch o in object.object
+    switch o in obj
     {
         case grh.object_points:
-            return len(o.points)
+            return o.open ? len(o.points) : 1
         case grh.object_function:
             return 1
     }
@@ -74,76 +44,59 @@ get_ui_object_element_count :: proc(object: ui_object) -> int
     panic("unreachable")
 }
 
-calc_ui_objects_height :: proc(ui_objects: []ui_object, spacing: f32) -> f32
+handle_input_for_objects_in_tab :: proc(tab: ui_editor_tab, mouse_pos: rl.Vector2, objs: grh.object_const_pool)
 {
-    height := spacing
-
-    for ui_o in ui_objects
-    {
-        element_count := get_ui_object_element_count(ui_o)
-        height += spacing + UI_OBJECT_HEIGHT * f32(element_count)
-    }
-
-    return height
-}
-
-check_ui_objects_interaction_in_tab :: proc(mouse_pos: rl.Vector2, ui_objects: []ui_object, tab: ui_editor_tab)
-{
-    tab_area := grh.resolve(rl.Rectangle, tab.area)
-
     yoffset := tab.spacing - tab.content_offset_y
-    base_rect := rl.Rectangle { tab_area.x, tab_area.y, tab_area.width, UI_OBJECT_HEIGHT }
 
-    for _, i in ui_objects
+    base_rect := tab.area
+    base_rect.height = tab.obj_height
+
+    for o in objs
     {
-        ui_o := &ui_objects[i]
+        overlap := get_object_overlap(tab, { 0, yoffset }, o^, mouse_pos)
 
-        element_count := get_ui_object_element_count(ui_o^)
-        rect := base_rect
-        rect.y += yoffset
-
-        if(rl.IsMouseButtonPressed(.LEFT) && is_point_in_rect(rect, mouse_pos))
+        if(rl.IsMouseButtonPressed(.LEFT) && overlap == 0 && grh.get_object_type(o^) == .POINTS)
         {
-            ui_o.open = !ui_o.open
+            ps := o.(grh.object_points)
+            ps.open = !ps.open
+            o^ = ps
         }
 
-        elem_i, is_mouse_in_elem := get_dropdown_index_from_point(rect, element_count, mouse_pos)
-
-        if(rl.IsMouseButtonPressed(.RIGHT) && is_mouse_in_elem)
+        if(rl.IsMouseButtonPressed(.RIGHT) && overlap >= 0)
         {
             //TODO: Allow editing of other object types
-            if grh.get_object_type(ui_o.object^) == .MATHEXPR
+            if grh.get_object_type(o^) == .MATHEXPR
             { 
-                init_text := ui_o.object.(grh.object_function).text
-                text_input_bind(init_text, { ui_o.object, 0 }, proc(event_data: text_input_event_data, s: string)
+                init_text := o.(grh.object_function).text
+                text_input_bind(init_text, { o, 0 }, proc(event_data: text_input_event_data, s: string)
                 {
                     grh.update_mathexpr_object(event_data.o, s)
                 })
             }
             else
             {
-                init_text := ui_o.object.(grh.object_points).texts[elem_i]
-                text_input_bind(init_text, { ui_o.object, elem_i }, proc(event_data: text_input_event_data, s: string)
+                init_text := o.(grh.object_points).texts[overlap]
+                text_input_bind(init_text, { o, overlap }, proc(event_data: text_input_event_data, s: string)
                 {
                     grh.update_point_in_object(event_data.o, s, event_data.i)
                 })
             }
         }
 
-        yoffset += tab.spacing + rect.height * f32(element_count)
+        yoffset += tab.spacing + get_object_height(tab, o^)
     }
 }
 
-draw_ui_objects_in_tab :: proc(ui_objects: []ui_object, tab: ui_editor_tab)
+draw_objects_in_tab :: proc(tab: ui_editor_tab, objs: grh.object_const_pool)
 {
-    tab_area := grh.resolve(rl.Rectangle, tab.area)
-
     yoffset := tab.spacing - tab.content_offset_y
-    base_rect := rl.Rectangle { tab_area.x, tab_area.y, tab_area.width, UI_OBJECT_HEIGHT }
 
-    for ui_o in ui_objects
+    base_rect := tab.area
+    base_rect.height = tab.obj_height
+
+    for o in objs
     {
-        element_count := get_ui_object_element_count(ui_o)
+        element_count := get_ui_object_element_count(o^)
     
         for i in 0..<element_count
         {
@@ -152,7 +105,7 @@ draw_ui_objects_in_tab :: proc(ui_objects: []ui_object, tab: ui_editor_tab)
 
             rl.DrawRectangleRec(rect, rl.GetColor(UI_OBJECT_BACKGROUND_COLOR))
 
-            switch o in ui_o.object
+            switch o in o
             {
                 case grh.object_points:
                     text := strings.clone_to_cstring(o.texts[i])
@@ -176,4 +129,47 @@ draw_text_centered :: proc(text: cstring, container: rl.Rectangle, font_size: f3
     font := rl.GetFontDefault()
     text_size := rl.MeasureTextEx(font, text, font_size, spacing)
     rl.DrawTextEx(font, text, { container.x, container.y } + { container.width, container.height }/2 - text_size/2, font_size, spacing, color)
+}
+
+get_single_object_rect :: proc(tab: ui_editor_tab, offset: rl.Vector2) -> rl.Rectangle
+{
+    return rl.Rectangle { x = offset.x, y = offset.y, width = tab.area.width, height = tab.obj_height }
+}
+
+get_object_overlap :: proc(tab: ui_editor_tab, offset: rl.Vector2, obj: grh.object, p: rl.Vector2) -> int
+{
+    offset := offset
+    ecount := get_ui_object_element_count(obj)
+
+    for i in 0 ..< ecount
+    {
+        rect := get_single_object_rect(tab, offset)
+
+        if rl.CheckCollisionPointRec(p, rect)
+        {
+            return i
+        }
+
+        offset.y += rect.height
+    }
+
+    return -1
+}
+
+get_object_height :: proc(tab: ui_editor_tab, obj: grh.object) -> f32
+{
+    ecount := get_ui_object_element_count(obj)
+    return tab.obj_height * f32(ecount)
+}
+
+get_full_height :: proc(tab: ui_editor_tab, objs: grh.object_const_pool) -> f32
+{
+    height: f32 = tab.spacing
+
+    for o in objs
+    {
+        height += get_object_height(tab, o^) + tab.spacing
+    }
+
+    return height
 }

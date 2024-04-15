@@ -15,52 +15,37 @@ BASE_VISUAL_OPTIONS :: visual_options {
     color = rl.RED,
 }
 
-//FIXME: Pointers to objects become invalid as the array grows 
-object_pool :: struct
-{
-    on_object_added: proc(^object),
-    objects: [dynamic]object
-} 
+object_pool :: [dynamic]^object
+object_const_pool :: []^object
 
-add_to_pool :: proc(pool: ^object_pool, o: object) -> ^object
+@(require_results)
+create_points :: proc(text_points: []string, style := visual_style.LINES, thickness: f32 = BASE_THICKNESS, color := rl.RED) -> ^object
 {
-    last_index := len(pool.objects)
-    append(&pool.objects, o)
-
-    obj_ptr := &pool.objects[last_index]
-    
-    if pool.on_object_added != nil
-    {
-        pool.on_object_added(obj_ptr)
-    }
-    
-    return obj_ptr
-}
-
-add_points_to_pool :: proc(pool: ^object_pool, text_points: []string, style := visual_style.LINES, thickness: f32 = BASE_THICKNESS, color := rl.RED) -> ^object
-{
-    o: object = object_points {
+    o := new(object)
+    o^ = object_points {
         visual_options = { style, thickness, color },
     }
 
     for text, i in text_points
     {
-        update_point_in_object(&o, text, i)
+        update_point_in_object(o, text, i)
     }
 
-    return add_to_pool(pool, o)
+    return o
 }
 
-add_mathexpr_to_pool :: proc(pool: ^object_pool, text_expr: string, point_count: responsive(f32), style := visual_style.LINES, thickness: f32 = BASE_THICKNESS, color := rl.RED) -> ^object
+@(require_results)
+create_mathexpr :: proc(text_expr: string, point_count: responsive(f32), style := visual_style.LINES, thickness: f32 = BASE_THICKNESS, color := rl.RED) -> ^object
 {
-    o := object_function {
+    o := new(object)
+    o^ = object_function {
         text = strings.clone(text_expr),
         expr = mathexpr.parse(text_expr),
         point_count = point_count,
         visual_options = { style, thickness, color },
     }
 
-    return add_to_pool(pool, o)
+    return o
 }
 
 update_point_in_object :: proc(obj: ^object, text: string, index: int)
