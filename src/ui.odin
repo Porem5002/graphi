@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:strings"
+import "core:mem"
 
 import grh "graph"
 import "mathexpr"
@@ -31,6 +32,20 @@ ui_text_printf :: proc(format: string, args: ..any) -> cstring
     return cast(cstring) &text_buffer[0] 
 }
 
+get_ui_rem_btn_rect :: proc(obj_rect: rl.Rectangle) -> rl.Rectangle
+{
+    full_height := obj_rect.height
+    btn_side := full_height / 3
+
+    rect: rl.Rectangle
+    rect.width = btn_side
+    rect.height = btn_side
+    rect.x = obj_rect.x + 15
+    rect.y = obj_rect.y + full_height/2 - btn_side/2
+    
+    return rect
+}
+
 get_ui_object_element_count :: proc(obj: grh.object) -> int
 {
     switch o in obj
@@ -51,8 +66,19 @@ handle_input_for_objects_in_tab :: proc(tab: ui_editor_tab, mouse_pos: rl.Vector
     base_rect := tab.area
     base_rect.height = tab.obj_height
 
-    for o in objs
+    for o, i in objs
     {
+        rect := base_rect
+        rect.y += yoffset
+        rem_btn_rect := get_ui_rem_btn_rect(rect)
+
+        if(rl.IsMouseButtonPressed(.LEFT) && rl.CheckCollisionPointRec(mouse_pos, rem_btn_rect))
+        {
+            text_input_unbind()
+            grh.pool_remove(objs, i)
+            return
+        }
+
         overlap := get_object_overlap(tab, { 0, yoffset }, o^, mouse_pos)
 
         if(rl.IsMouseButtonPressed(.LEFT) && overlap == 0 && grh.get_object_type(o^) == .POINTS)
@@ -110,6 +136,13 @@ draw_objects_in_tab :: proc(tab: ui_editor_tab, objs: grh.object_const_pool)
             rect.y += yoffset
 
             rl.DrawRectangleRec(rect, rl.GetColor(UI_OBJECT_BACKGROUND_COLOR))
+
+            if i == 0
+            {
+                rem_btn_rect := get_ui_rem_btn_rect(rect)
+                rl.DrawRectangleRec(rem_btn_rect, rl.GRAY)
+                draw_text_centered("-", rem_btn_rect, color = rl.WHITE)
+            }
 
             switch o in o
             {

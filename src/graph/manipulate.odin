@@ -100,3 +100,10 @@ clean_object :: proc(obj: ^object)
             }
     }
 }
+
+pool_remove :: proc(pool: ^object_pool, index: int)
+{
+    o := pool[index]
+    ordered_remove(pool, index)
+    free(o)
+}
