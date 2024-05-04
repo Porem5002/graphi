@@ -74,7 +74,7 @@ main :: proc()
         }
 
         tab.content_offset_y = scroll * scroll_max
-        handle_input_for_objects_in_tab(tab, mouse_pos, objects[:])
+        handle_input_for_objects_in_tab(tab, mouse_pos, &objects)
 
         if rl.IsKeyPressed(.ENTER)
         {

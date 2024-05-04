@@ -44,7 +44,7 @@ get_ui_object_element_count :: proc(obj: grh.object) -> int
     panic("unreachable")
 }
 
-handle_input_for_objects_in_tab :: proc(tab: ui_editor_tab, mouse_pos: rl.Vector2, objs: grh.object_const_pool)
+handle_input_for_objects_in_tab :: proc(tab: ui_editor_tab, mouse_pos: rl.Vector2, objs: ^grh.object_pool)
 {
     yoffset := tab.spacing - tab.content_offset_y
 
@@ -85,6 +85,12 @@ handle_input_for_objects_in_tab :: proc(tab: ui_editor_tab, mouse_pos: rl.Vector
 
         yoffset += tab.spacing + get_object_height(tab, o^)
     }
+
+    add_btn_rect := get_single_object_rect(tab, { 0, yoffset })
+    if rl.IsMouseButtonPressed(.LEFT) && rl.CheckCollisionPointRec(mouse_pos, add_btn_rect)
+    {
+        append(objs, grh.create_mathexpr("x", graph_display_area_width, color = rl.RED))
+    }
 }
 
 draw_objects_in_tab :: proc(tab: ui_editor_tab, objs: grh.object_const_pool)
@@ -122,6 +128,10 @@ draw_objects_in_tab :: proc(tab: ui_editor_tab, objs: grh.object_const_pool)
 
         yoffset += tab.spacing
     }
+
+    add_btn_rect := get_single_object_rect(tab, { 0, yoffset })
+    rl.DrawRectangleRec(add_btn_rect, rl.GRAY)
+    draw_text_centered("+", add_btn_rect, font_size = 30, color = rl.WHITE)
 }
 
 draw_text_centered :: proc(text: cstring, container: rl.Rectangle, font_size: f32 = 23, spacing: f32 = 3, color: rl.Color = rl.WHITE)
@@ -170,6 +180,9 @@ get_full_height :: proc(tab: ui_editor_tab, objs: grh.object_const_pool) -> f32
     {
         height += get_object_height(tab, o^) + tab.spacing
     }
+
+    // Consider '+' button
+    height += tab.obj_height + tab.spacing
 
     return height
 }
