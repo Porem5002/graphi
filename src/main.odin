@@ -28,11 +28,14 @@ objects := grh.object_pool {}
 
 main :: proc()
 {
+    flags := rl.ConfigFlags { 
+        rl.ConfigFlag.MSAA_4X_HINT,
+        rl.ConfigFlag.WINDOW_RESIZABLE,
+    }
+    rl.SetConfigFlags(flags)
+
     text_input_init()
     rl.InitWindow(900, 900, "GraPhi")
-    
-    flags := rl.ConfigFlags { rl.ConfigFlag.WINDOW_RESIZABLE }
-    rl.SetWindowState(flags)
 
     rl.SetTargetFPS(TARGET_FPS)
 
