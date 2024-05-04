@@ -46,6 +46,17 @@ get_ui_rem_btn_rect :: proc(obj_rect: rl.Rectangle) -> rl.Rectangle
     return rect
 }
 
+get_ui_color_btn_circle :: proc(obj_rect: rl.Rectangle) -> (radius: f32, center: rl.Vector2)
+{
+    full_height := obj_rect.height
+    diameter := full_height / 3
+
+    radius = diameter / 2
+    center.x = obj_rect.x + obj_rect.width - radius*2 - 15;
+    center.y = obj_rect.y + full_height/2 
+    return
+}
+
 get_ui_object_element_count :: proc(obj: grh.object) -> int
 {
     switch o in obj
@@ -76,6 +87,25 @@ handle_input_for_objects_in_tab :: proc(tab: ui_editor_tab, mouse_pos: rl.Vector
         {
             text_input_unbind()
             grh.pool_remove(objs, i)
+            return
+        }
+
+        color_btn_radius, color_btn_pos := get_ui_color_btn_circle(rect)
+
+        if(rl.IsMouseButtonPressed(.LEFT) && rl.CheckCollisionPointCircle(mouse_pos, color_btn_pos, color_btn_radius))
+        {
+            text_input_unbind()
+            
+            switch _ in o
+            {
+                case grh.object_function:
+                    o := &o.(grh.object_function)
+                    open_popup_color_picker(o.color, &o.color)
+                case grh.object_points:
+                    o := &o.(grh.object_points)
+                    open_popup_color_picker(o.color, &o.color)
+            }
+
             return
         }
 
@@ -147,10 +177,24 @@ draw_objects_in_tab :: proc(tab: ui_editor_tab, objs: grh.object_const_pool)
             switch o in o
             {
                 case grh.object_points:
+                    if i == 0
+                    {
+                        color_btn_radius, color_btn_pos := get_ui_color_btn_circle(rect)
+                        rl.DrawCircleV(color_btn_pos, color_btn_radius, rl.WHITE)
+                        rl.DrawCircleV(color_btn_pos, color_btn_radius*0.9, o.visual_options.color)
+                    }
+
                     text := strings.clone_to_cstring(o.texts[i])
                     defer delete(text) 
                     draw_text_centered(text, rect, color = o.visual_options.color)
                 case grh.object_function:
+                    if i == 0
+                    {
+                        color_btn_radius, color_btn_pos := get_ui_color_btn_circle(rect)
+                        rl.DrawCircleV(color_btn_pos, color_btn_radius, rl.WHITE)
+                        rl.DrawCircleV(color_btn_pos, color_btn_radius*0.9, o.visual_options.color)
+                    }
+
                     text := strings.clone_to_cstring(o.text)
                     defer delete(text)
                     draw_text_centered(text, rect, color = o.visual_options.color)

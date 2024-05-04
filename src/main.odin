@@ -74,7 +74,14 @@ main :: proc()
         }
 
         tab.content_offset_y = scroll * scroll_max
-        handle_input_for_objects_in_tab(tab, mouse_pos, &objects)
+
+        switch get_popup_mode()
+        {
+            case .NONE:
+                handle_input_for_objects_in_tab(tab, mouse_pos, &objects)
+            case .COLOR_PICKER:
+                handle_popup_color_picker_input(mouse_pos)
+        }
 
         if rl.IsKeyPressed(.ENTER)
         {
@@ -122,6 +129,13 @@ main :: proc()
             rl.DrawRectangleRec(object_edit_area(), rl.GetColor(UI_OBJECT_SECTION_BACKGROUND_COLOR))            
 
             draw_objects_in_tab(tab, objects[:])
+
+            switch get_popup_mode()
+            {
+                case .NONE:
+                case .COLOR_PICKER:
+                    draw_popup_color_picker()
+            }
 
             rl.DrawFPS(10, 10)
         rl.EndDrawing()
