@@ -71,7 +71,7 @@ get_ui_object_element_count :: proc(obj: grh.object) -> int
     panic("unreachable")
 }
 
-handle_input_for_objects_in_tab :: proc(tab: ui_editor_tab, mouse_pos: rl.Vector2, objs: ^grh.object_pool)
+handle_input_for_objects_in_tab :: proc(popup: ^popup_data, tab: ui_editor_tab, mouse_pos: rl.Vector2, objs: ^grh.object_pool)
 {
     yoffset := tab.spacing - tab.content_offset_y
 
@@ -101,10 +101,10 @@ handle_input_for_objects_in_tab :: proc(tab: ui_editor_tab, mouse_pos: rl.Vector
             {
                 case grh.object_function:
                     o := &o.(grh.object_function)
-                    open_popup_color_picker(o.color, &o.color)
+                    open_popup_color_picker(popup, o.color, &o.color)
                 case grh.object_points:
                     o := &o.(grh.object_points)
-                    open_popup_color_picker(o.color, &o.color)
+                    open_popup_color_picker(popup, o.color, &o.color)
             }
 
             return

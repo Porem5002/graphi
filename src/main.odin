@@ -40,8 +40,9 @@ main :: proc()
 
     rl.SetTargetFPS(TARGET_FPS)
 
+    popup := popup_data { .NONE, {} }
+
     draw_group := drawing.draw_group {}
-    curr_popup.draw_group = &draw_group
 
     tab := ui_editor_tab {
         content_offset_y = 0,
@@ -61,7 +62,7 @@ main :: proc()
         mouse_wheel_y := rl.GetMouseWheelMove()
         delta_time := rl.GetFrameTime()
 
-        popup_exists := get_popup_mode() != .NONE
+        popup_exists := popup.mode != .NONE
         tab.area = object_edit_area()
 
         // UI Object Interaction
@@ -82,11 +83,11 @@ main :: proc()
 
         if !popup_exists
         {
-            handle_input_for_objects_in_tab(tab, mouse_pos, &objects)
+            handle_input_for_objects_in_tab(&popup, tab, mouse_pos, &objects)
         }
         else
         {
-            handle_popup_color_picker_input(mouse_pos)
+            update_popup(&popup, &draw_group, mouse_pos)
         }
 
         // Graph Interaction
