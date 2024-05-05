@@ -55,73 +55,72 @@ main :: proc()
     append(&objects, grh.create_mathexpr("5", graph_display_area_width, color = rl.BLUE))
     append(&objects, grh.create_mathexpr("-x * x", graph_display_area_width, color = rl.RED))
 
-    for (!rl.WindowShouldClose())
+    for !rl.WindowShouldClose()
     {
         mouse_pos := rl.GetMousePosition()
         mouse_wheel_y := rl.GetMouseWheelMove()
         delta_time := rl.GetFrameTime()
 
+        popup_exists := get_popup_mode() != .NONE
         tab.area = object_edit_area()
 
         // UI Object Interaction
         total_height := get_full_height(tab, objects[:])
         scroll_max := total_height - tab.area.height
 
-        if(scroll_max > 0 && rl.CheckCollisionPointRec(mouse_pos, tab.area))
+        if !popup_exists && scroll_max > 0 && rl.CheckCollisionPointRec(mouse_pos, tab.area)
         {
             scroll -= mouse_wheel_y * delta_time * SCROLL_FACTOR
             scroll = scroll_max <= 0 ? 0 : clamp(scroll, 0, 1)
         }
-        else if(scroll_max <= 0)
+        else if scroll_max <= 0
         {
             scroll = 0
         }
 
         tab.content_offset_y = scroll * scroll_max
 
-        switch get_popup_mode()
+        if !popup_exists
         {
-            case .NONE:
-                handle_input_for_objects_in_tab(tab, mouse_pos, &objects)
-            case .COLOR_PICKER:
-                handle_popup_color_picker_input(mouse_pos)
+            handle_input_for_objects_in_tab(tab, mouse_pos, &objects)
         }
-
-        if rl.IsKeyPressed(.ENTER)
+        else
         {
-            text_input_unbind()
+            handle_popup_color_picker_input(mouse_pos)
         }
-
-        text_input_update()
 
         // Graph Interaction
-        if(rl.CheckCollisionPointRec(mouse_pos, graph_display_area()))
+        if !popup_exists && rl.CheckCollisionPointRec(mouse_pos, graph_display_area())
         {
             /* Scale Controls */
             graph.scale -= mouse_wheel_y * delta_time * SCALE_FACTOR
             graph.scale = max(graph.scale, math.F32_EPSILON)
 
             /* Offset/Movement Controls */
-            if(rl.IsKeyPressed(.W) || rl.IsKeyDown(.W))
+            if rl.IsKeyPressed(.W) || rl.IsKeyDown(.W)
             {
                 graph.y_axis.offset += delta_time * MOVEMENT_SPEED * graph.scale
             }
 
-            if(rl.IsKeyPressed(.S) || rl.IsKeyDown(.S))
+            if rl.IsKeyPressed(.S) || rl.IsKeyDown(.S)
             {
                 graph.y_axis.offset -= delta_time * MOVEMENT_SPEED * graph.scale
             }
 
-            if(rl.IsKeyPressed(.D) || rl.IsKeyDown(.D))
+            if rl.IsKeyPressed(.D) || rl.IsKeyDown(.D)
             {
                 graph.x_axis.offset += delta_time * MOVEMENT_SPEED * graph.scale
             }
 
-            if(rl.IsKeyPressed(.A) || rl.IsKeyDown(.A))
+            if rl.IsKeyPressed(.A) || rl.IsKeyDown(.A)
             {
                 graph.x_axis.offset -= delta_time * MOVEMENT_SPEED * graph.scale
             }
         }
+
+        if rl.IsKeyPressed(.ENTER) do text_input_unbind()
+
+        text_input_update()
 
         rl.BeginDrawing()
             rl.ClearBackground(rl.BLACK)
