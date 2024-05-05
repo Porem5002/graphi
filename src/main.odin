@@ -5,6 +5,7 @@ import "core:math"
 import "core:c"
 
 import grh "graph"
+import "drawing"
 
 import rl "vendor:raylib"
 
@@ -38,6 +39,9 @@ main :: proc()
     rl.InitWindow(900, 900, "GraPhi")
 
     rl.SetTargetFPS(TARGET_FPS)
+
+    draw_group := drawing.draw_group {}
+    curr_popup.draw_group = &draw_group
 
     tab := ui_editor_tab {
         content_offset_y = 0,
@@ -130,12 +134,7 @@ main :: proc()
 
             draw_objects_in_tab(tab, objects[:])
 
-            switch get_popup_mode()
-            {
-                case .NONE:
-                case .COLOR_PICKER:
-                    draw_popup_color_picker()
-            }
+            drawing.draw_all(&draw_group)
 
             rl.DrawFPS(10, 10)
         rl.EndDrawing()

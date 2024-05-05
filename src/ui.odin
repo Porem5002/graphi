@@ -6,6 +6,7 @@ import "core:mem"
 
 import grh "graph"
 import "mathexpr"
+import "drawing"
 
 import rl "vendor:raylib" 
 
@@ -171,7 +172,7 @@ draw_objects_in_tab :: proc(tab: ui_editor_tab, objs: grh.object_const_pool)
             {
                 rem_btn_rect := get_ui_rem_btn_rect(rect)
                 rl.DrawRectangleRec(rem_btn_rect, rl.GRAY)
-                draw_text_centered("-", rem_btn_rect, color = rl.WHITE)
+                drawing.draw_cstring_centered("-", rem_btn_rect, color = rl.WHITE)
             }
 
             switch o in o
@@ -184,9 +185,7 @@ draw_objects_in_tab :: proc(tab: ui_editor_tab, objs: grh.object_const_pool)
                         rl.DrawCircleV(color_btn_pos, color_btn_radius*0.9, o.visual_options.color)
                     }
 
-                    text := strings.clone_to_cstring(o.texts[i])
-                    defer delete(text) 
-                    draw_text_centered(text, rect, color = o.visual_options.color)
+                    drawing.draw_text_centered(o.texts[i], rect, color = o.visual_options.color)
                 case grh.object_function:
                     if i == 0
                     {
@@ -195,9 +194,7 @@ draw_objects_in_tab :: proc(tab: ui_editor_tab, objs: grh.object_const_pool)
                         rl.DrawCircleV(color_btn_pos, color_btn_radius*0.9, o.visual_options.color)
                     }
 
-                    text := strings.clone_to_cstring(o.text)
-                    defer delete(text)
-                    draw_text_centered(text, rect, color = o.visual_options.color)
+                    drawing.draw_text_centered(o.text, rect, color = o.visual_options.color)
             }
         
             yoffset += rect.height
@@ -208,14 +205,7 @@ draw_objects_in_tab :: proc(tab: ui_editor_tab, objs: grh.object_const_pool)
 
     add_btn_rect := get_single_object_rect(tab, { 0, yoffset })
     rl.DrawRectangleRec(add_btn_rect, rl.GRAY)
-    draw_text_centered("+", add_btn_rect, font_size = 30, color = rl.WHITE)
-}
-
-draw_text_centered :: proc(text: cstring, container: rl.Rectangle, font_size: f32 = 23, spacing: f32 = 3, color: rl.Color = rl.WHITE)
-{
-    font := rl.GetFontDefault()
-    text_size := rl.MeasureTextEx(font, text, font_size, spacing)
-    rl.DrawTextEx(font, text, { container.x, container.y } + { container.width, container.height }/2 - text_size/2, font_size, spacing, color)
+    drawing.draw_cstring_centered("+", add_btn_rect, font_size = 30, color = rl.WHITE)
 }
 
 get_single_object_rect :: proc(tab: ui_editor_tab, offset: rl.Vector2) -> rl.Rectangle
