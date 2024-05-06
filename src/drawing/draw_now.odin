@@ -35,6 +35,12 @@ draw_all :: proc(group: ^draw_group)
             case .RECT_LINES:
                 entry := entry.rect_lines
                 rl.DrawRectangleLinesEx(entry.rect, 1, entry.color)
+            case .CIRCLE:
+                entry := entry.circle
+                rl.DrawCircleV(entry.center, entry.radius, entry.color)
+            case .CENTERED_TEXT_C:
+                entry := entry.centered_text_c
+                draw_text_centered(entry.text, entry.container, color = entry.color)
             case .CENTERED_TEXT:
                 entry := entry.centered_text
                 draw_text_centered(entry.text, entry.container, color = entry.color)

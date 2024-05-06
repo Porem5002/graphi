@@ -9,6 +9,22 @@ import "drawing"
 
 import rl "vendor:raylib"
 
+program_data :: struct
+{
+    clicked_button: bool,
+
+    tab: ui_editor_tab,
+    objects: grh.object_pool,
+
+    draw_group: drawing.draw_group,
+    popup: popup_data,
+
+    mouse_pos: rl.Vector2,
+    mouse_wheel_y: f32,
+    delta_time: f32,
+    scroll: f32,
+}
+
 graph := grh.graph {
     display_area = graph_display_area,
     x_axis = { offset = -1, span = 2, step = 0.5 },
@@ -23,10 +39,6 @@ SCROLL_FACTOR :: 6.0
 
 TARGET_FPS :: 60
 
-scroll: f32 = 0.0
-
-objects := grh.object_pool {}
-
 main :: proc()
 {
     flags := rl.ConfigFlags { 
@@ -40,21 +52,22 @@ main :: proc()
 
     rl.SetTargetFPS(TARGET_FPS)
 
-    popup := popup_data { .NONE, {} }
-
-    draw_group := drawing.draw_group {}
-
-    tab := ui_editor_tab {
+    program: program_data
+    program.draw_group = {}
+    program.popup = popup_data { .NONE, {} }
+    program.objects = {}
+    program.scroll = 0
+    program.tab = ui_editor_tab {
         content_offset_y = 0,
         area = object_edit_area(),
         spacing = UI_OBJECT_SPACING,
         obj_height = UI_OBJECT_HEIGHT
     }
 
-    append(&objects, grh.create_points({ "1, 2" , "2, 4", "3, 6", "4, 8" }, color = rl.GREEN))
-    append(&objects, grh.create_mathexpr("sin(x) + x", graph_display_area_width, color = rl.YELLOW))
-    append(&objects, grh.create_mathexpr("5", graph_display_area_width, color = rl.BLUE))
-    append(&objects, grh.create_mathexpr("-x * x", graph_display_area_width, color = rl.RED))
+    append(&program.objects, grh.create_points({ "1, 2" , "2, 4", "3, 6", "4, 8" }, color = rl.GREEN))
+    append(&program.objects, grh.create_mathexpr("sin(x) + x", graph_display_area_width, color = rl.YELLOW))
+    append(&program.objects, grh.create_mathexpr("5", graph_display_area_width, color = rl.BLUE))
+    append(&program.objects, grh.create_mathexpr("-x * x", graph_display_area_width, color = rl.RED))
 
     for !rl.WindowShouldClose()
     {
@@ -62,33 +75,32 @@ main :: proc()
         mouse_wheel_y := rl.GetMouseWheelMove()
         delta_time := rl.GetFrameTime()
 
-        popup_exists := popup.mode != .NONE
-        tab.area = object_edit_area()
+        program.mouse_pos = mouse_pos
+        program.mouse_wheel_y = mouse_wheel_y
+        program.delta_time = delta_time
+        program.clicked_button = false
+
+        popup_exists := program.popup.mode != .NONE
+        program.tab.area = object_edit_area()
 
         // UI Object Interaction
-        total_height := get_full_height(tab, objects[:])
-        scroll_max := total_height - tab.area.height
+        total_height := get_full_height(program.tab, program.objects[:])
+        scroll_max := total_height - program.tab.area.height
 
-        if !popup_exists && scroll_max > 0 && rl.CheckCollisionPointRec(mouse_pos, tab.area)
+        if !popup_exists && scroll_max > 0 && rl.CheckCollisionPointRec(mouse_pos, program.tab.area)
         {
-            scroll -= mouse_wheel_y * delta_time * SCROLL_FACTOR
-            scroll = scroll_max <= 0 ? 0 : clamp(scroll, 0, 1)
+            program.scroll -= mouse_wheel_y * delta_time * SCROLL_FACTOR
+            program.scroll = scroll_max <= 0 ? 0 : clamp(program.scroll, 0, 1)
         }
         else if scroll_max <= 0
         {
-            scroll = 0
+            program.scroll = 0
         }
 
-        tab.content_offset_y = scroll * scroll_max
+        program.tab.content_offset_y = program.scroll * scroll_max
 
-        if !popup_exists
-        {
-            handle_input_for_objects_in_tab(&popup, tab, mouse_pos, &objects)
-        }
-        else
-        {
-            update_popup(&popup, &draw_group, mouse_pos)
-        }
+        update_tab(&program)
+        update_popup(&program.popup, &program.draw_group, mouse_pos)
 
         // Graph Interaction
         if !popup_exists && rl.CheckCollisionPointRec(mouse_pos, graph_display_area())
@@ -128,13 +140,11 @@ main :: proc()
 
             grh.draw_vertical_step_indicators(graph, rl.GRAY)
             grh.draw_horizontal_step_indicators(graph, rl.GRAY)
-            grh.draw_objects_in_graph(objects[:], graph)
+            grh.draw_objects_in_graph(program.objects[:], graph)
 
-            rl.DrawRectangleRec(object_edit_area(), rl.GetColor(UI_OBJECT_SECTION_BACKGROUND_COLOR))            
+            rl.DrawRectangleRec(object_edit_area(), rl.GetColor(UI_OBJECT_SECTION_BACKGROUND_COLOR))
 
-            draw_objects_in_tab(tab, objects[:])
-
-            drawing.draw_all(&draw_group)
+            drawing.draw_all(&program.draw_group)
 
             rl.DrawFPS(10, 10)
         rl.EndDrawing()

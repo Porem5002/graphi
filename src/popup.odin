@@ -64,9 +64,9 @@ update_popup_color_picker :: proc(popup: ^popup_data, draw_group: ^drawing.draw_
     close_btn_rect.x = menu_rect.x + menu_rect.width - close_btn_rect.width
     close_btn_rect.y = menu_rect.y
     drawing.add_entry_rect(draw_group, rl.RED, close_btn_rect)
-    drawing.add_entry_centered_text(draw_group, "+", close_btn_rect, rl.WHITE)
+    drawing.add_entry_centered_cstring(draw_group, "+", close_btn_rect, rl.WHITE)
 
-    if !clicked && rl.IsMouseButtonDown(.LEFT) && rl.CheckCollisionPointRec(mouse_pos, close_btn_rect)
+    if !clicked && ui_rect_clicked(.LEFT, close_btn_rect)
     {
         close_popup(popup)
         clicked = true
@@ -92,7 +92,7 @@ update_popup_color_picker :: proc(popup: ^popup_data, draw_group: ^drawing.draw_
         {
             drawing.add_entry_rect(draw_group, color, opt_rect)
 
-            if !clicked && rl.IsMouseButtonDown(.LEFT) && rl.CheckCollisionPointRec(mouse_pos, opt_rect)
+            if !clicked && ui_rect_clicked(.LEFT, opt_rect)
             {
                 color_picker.curr_color = color
                 clicked = true
@@ -125,9 +125,9 @@ update_popup_color_picker :: proc(popup: ^popup_data, draw_group: ^drawing.draw_
     save_btn_rect.x = menu_rect.x + menu_rect.width/2 - save_btn_rect.width/2
     save_btn_rect.y = menu_rect.y + menu_rect.height*0.8
     drawing.add_entry_rect(draw_group, rl.GRAY, save_btn_rect)
-    drawing.add_entry_centered_text(draw_group, "Save", save_btn_rect, rl.WHITE)
+    drawing.add_entry_centered_cstring(draw_group, "Save", save_btn_rect, rl.WHITE)
 
-    if !clicked && rl.IsMouseButtonDown(.LEFT) && rl.CheckCollisionPointRec(mouse_pos, save_btn_rect)
+    if !clicked && ui_rect_clicked(.LEFT, save_btn_rect)
     {
         color_picker.dest^ = color_picker.curr_color
         close_popup(popup)

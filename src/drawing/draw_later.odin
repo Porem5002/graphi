@@ -8,6 +8,8 @@ draw_entry_kind :: enum
 {
     RECT,
     RECT_LINES,
+    CIRCLE,
+    CENTERED_TEXT_C,
     CENTERED_TEXT,
 }
 
@@ -29,11 +31,25 @@ draw_entry :: struct
             rect: rl.Rectangle,
         },
 
-        centered_text: struct
+        circle: struct
+        {
+            color: rl.Color,
+            center: rl.Vector2,
+            radius: f32,
+        },
+
+        centered_text_c: struct
         {
             color: rl.Color,
             container: rl.Rectangle,
             text: cstring,
+        },
+
+        centered_text: struct
+        {
+            color: rl.Color,
+            container: rl.Rectangle,
+            text: string,
         }
     }
 }
@@ -64,7 +80,41 @@ add_entry_rect_lines :: proc(group: ^draw_group, color: rl.Color, rect: rl.Recta
     append(group, entry)
 }
 
-add_entry_centered_text :: proc(group: ^draw_group, text: cstring, container: rl.Rectangle, color: rl.Color)
+add_entry_circle :: proc(group: ^draw_group, center: rl.Vector2, radius: f32, color: rl.Color)
+{
+    entry := draw_entry {
+        kind = .CIRCLE,
+        circle = {
+            color = color,
+            center = center,
+            radius = radius,
+        }
+    }
+
+    append(group, entry)
+}
+
+add_entry_centered_text :: proc
+{
+    add_entry_centered_cstring,
+    add_entry_centered_string,
+}
+
+add_entry_centered_cstring :: proc(group: ^draw_group, text: cstring, container: rl.Rectangle, color: rl.Color)
+{
+    entry := draw_entry {
+        kind = .CENTERED_TEXT_C,
+        centered_text_c = {
+            color = color,
+            container = container,
+            text = text,
+        }
+    }
+
+    append(group, entry)
+}
+
+add_entry_centered_string :: proc(group: ^draw_group, text: string, container: rl.Rectangle, color: rl.Color)
 {
     entry := draw_entry {
         kind = .CENTERED_TEXT,
