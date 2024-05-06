@@ -1,9 +1,6 @@
 package mathexpr
 
-import "core:math"
-import "core:fmt"
 import "core:strconv"
-import "core:strings"
 import "core:unicode"
 import "core:unicode/utf8"
 

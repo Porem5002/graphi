@@ -1,11 +1,8 @@
 package main
 
 import "core:fmt"
-import "core:strings"
-import "core:mem"
 
 import grh "graph"
-import "mathexpr"
 import "drawing"
 
 import rl "vendor:raylib" 
@@ -132,9 +129,8 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
 {
     tab := &program.tab
     draw_group := &program.draw_group
-    objs := &program.objects
-    mouse_pos := program.mouse_pos
 
+    mouse_pos := rl.GetMousePosition()
     color_btn_radius, color_btn_pos := get_ui_color_btn_circle(rect)
 
     if ui_allow_tab_click(program) && ui_circle_clicked(.LEFT, color_btn_pos, color_btn_radius)

@@ -1,1 +1,1 @@
-odin build src -out:graphi.exe -o:speed
+odin build src -out:graphi.exe -o:speed -vet

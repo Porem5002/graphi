@@ -1,7 +1,6 @@
 package graph
 
 import "core:strings"
-import "core:fmt"
 
 import "../mathexpr"
 

@@ -1,8 +1,5 @@
 package main
 
-import "core:strings"
-import "core:strconv"
-
 import rl "vendor:raylib"
 import "drawing"
 

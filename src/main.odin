@@ -1,8 +1,6 @@
 package main
 
-import "core:fmt"
 import "core:math"
-import "core:c"
 
 import grh "graph"
 import "drawing"
@@ -19,9 +17,6 @@ program_data :: struct
     draw_group: drawing.draw_group,
     popup: popup_data,
 
-    mouse_pos: rl.Vector2,
-    mouse_wheel_y: f32,
-    delta_time: f32,
     scroll: f32,
 }
 
@@ -75,13 +70,9 @@ main :: proc()
         mouse_wheel_y := rl.GetMouseWheelMove()
         delta_time := rl.GetFrameTime()
 
-        program.mouse_pos = mouse_pos
-        program.mouse_wheel_y = mouse_wheel_y
-        program.delta_time = delta_time
-        program.clicked_button = false
-
         popup_exists := program.popup.mode != .NONE
         program.tab.area = object_edit_area()
+        program.clicked_button = false
 
         // UI Object Interaction
         total_height := get_full_height(program.tab, program.objects[:])
