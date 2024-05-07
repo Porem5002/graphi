@@ -197,9 +197,8 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
     rem_btn_rect := get_ui_rem_btn_rect(rect)
     drawing.add_entry_rect(draw_group, rl.GRAY, rem_btn_rect)
     drawing.add_entry_centered_cstring(draw_group, "-", rem_btn_rect, rl.WHITE)
-
-    drawing.add_entry_circle(draw_group, color_btn_pos, color_btn_radius, rl.WHITE)
-    drawing.add_entry_circle(draw_group, color_btn_pos, color_btn_radius*0.9, get_object_color(o))
+    
+    drawing.add_entry_circle_with_border(draw_group, color_btn_pos, color_btn_radius, get_object_color(o))
 }
 
 ui_rect_clicked :: proc(mouse_btn: rl.MouseButton, rect: rl.Rectangle) -> bool

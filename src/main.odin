@@ -47,6 +47,9 @@ main :: proc()
 
     rl.SetTargetFPS(TARGET_FPS)
 
+    draw_ctx := drawing.load_context()
+    defer drawing.unload_context(draw_ctx)
+
     program: program_data
     program.draw_group = {}
     program.popup = popup_data { .NONE, {} }
@@ -135,7 +138,7 @@ main :: proc()
 
             rl.DrawRectangleRec(object_edit_area(), rl.GetColor(UI_OBJECT_SECTION_BACKGROUND_COLOR))
 
-            drawing.draw_all(&program.draw_group)
+            drawing.draw_all(draw_ctx, &program.draw_group)
 
             rl.DrawFPS(10, 10)
         rl.EndDrawing()

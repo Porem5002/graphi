@@ -9,6 +9,7 @@ draw_entry_kind :: enum
     RECT,
     RECT_LINES,
     CIRCLE,
+    CIRCLE_WITH_BORDER,
     CENTERED_TEXT_C,
     CENTERED_TEXT,
 }
@@ -50,6 +51,13 @@ draw_entry :: struct
             color: rl.Color,
             container: rl.Rectangle,
             text: string,
+        },
+
+        circle_with_border: struct
+        {
+            center: rl.Vector2,
+            radius: f32,
+            color: rl.Color,
         }
     }
 }
@@ -88,6 +96,20 @@ add_entry_circle :: proc(group: ^draw_group, center: rl.Vector2, radius: f32, co
             color = color,
             center = center,
             radius = radius,
+        }
+    }
+
+    append(group, entry)
+}
+
+add_entry_circle_with_border :: proc(group: ^draw_group, center: rl.Vector2, radius: f32, color: rl.Color)
+{
+    entry := draw_entry {
+        kind = .CIRCLE_WITH_BORDER,
+        circle_with_border = {
+            center = center,
+            radius = radius,
+            color = color,
         }
     }
 
