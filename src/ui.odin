@@ -68,14 +68,9 @@ get_ui_object_element_count :: proc(obj: grh.object) -> int
     panic("unreachable")
 }
 
-ui_allow_tab_click :: proc(program: ^program_data) -> bool
+ui_tab_click_active :: proc(program: ^program_data) -> bool
 {
     return program.popup.mode == .NONE && !program.clicked_button
-}
-
-ui_allow_popup_click :: proc(program: ^program_data) -> bool
-{
-    return program.popup.mode != .NONE && !program.clicked_button
 }
 
 ui_lock_click :: proc(program: ^program_data)
@@ -85,6 +80,8 @@ ui_lock_click :: proc(program: ^program_data)
 
 update_tab :: proc(program: ^program_data)
 {
+    hover, click: bool
+
     tab := &program.tab
     draw_group := &program.draw_group
 
@@ -99,29 +96,59 @@ update_tab :: proc(program: ^program_data)
         rect.y += yoffset
         
         rem_btn_rect := get_ui_rem_btn_rect(rect)
-        if ui_allow_tab_click(program) && ui_rect_clicked(.LEFT, rem_btn_rect) 
+        rem_btn_color := rl.GRAY
+
+        if ui_tab_click_active(program)
         {
-            text_input_unbind()
-            grh.pool_remove(&program.objects, i)
-            ui_lock_click(program)
-            
-            i -= 1
-            continue
+            hover, click = ui_rect_hovered_and_clicked(.LEFT, rem_btn_rect)
+
+            if hover
+            {
+                rem_btn_color = rl.ColorBrightness(rem_btn_color, 0.3)
+                program.curr_cursor = .POINTING_HAND
+            }
+
+            if click 
+            {
+                text_input_unbind()
+                grh.pool_remove(&program.objects, i)
+                ui_lock_click(program)
+                
+                i -= 1
+                continue
+            }
         }
 
         o := program.objects[i]
         update_object_in_tab(program, rect, o, yoffset)
+
+        drawing.add_entry_rect(draw_group, rem_btn_color, rem_btn_rect)
+        drawing.add_entry_centered_cstring(draw_group, "-", rem_btn_rect, rl.WHITE)
+
         yoffset += tab.spacing + get_object_height(tab^, o^)
     }
 
     add_btn_rect := get_single_object_rect(tab^, { 0, yoffset })
-    if ui_allow_tab_click(program) && ui_rect_clicked(.LEFT, add_btn_rect)
+    add_btn_color := rl.GRAY
+
+    if ui_tab_click_active(program)
     {
-        append(&program.objects, grh.create_mathexpr("x", graph_display_area_width, color = rl.RED))
-        ui_lock_click(program)
+        hover, click = ui_rect_hovered_and_clicked(.LEFT, add_btn_rect)
+
+        if hover
+        {
+            add_btn_color = rl.ColorBrightness(add_btn_color, 0.3)
+            program.curr_cursor = .POINTING_HAND
+        }
+
+        if click
+        {
+            append(&program.objects, grh.create_mathexpr("x", graph_display_area_width, color = rl.RED))
+            ui_lock_click(program)
+        }
     }
 
-    drawing.add_entry_rect(draw_group, rl.GRAY, add_btn_rect)
+    drawing.add_entry_rect(draw_group, add_btn_color, add_btn_rect)
     drawing.add_entry_centered_cstring(draw_group, "+", add_btn_rect, rl.WHITE)
 }
 
@@ -130,22 +157,29 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
     tab := &program.tab
     draw_group := &program.draw_group
 
-    mouse_pos := rl.GetMousePosition()
     color_btn_radius, color_btn_pos := get_ui_color_btn_circle(rect)
-
-    if ui_allow_tab_click(program) && ui_circle_clicked(.LEFT, color_btn_pos, color_btn_radius)
+    
+    if ui_tab_click_active(program)
     {
-        text_input_unbind()
-        
-        color_ptr := get_object_color_ptr(o)
-        open_popup_color_picker(&program.popup, color_ptr^, color_ptr)
+        hover, click := ui_circle_hovered_and_clicked(.LEFT, color_btn_pos, color_btn_radius)
 
-        ui_lock_click(program)
+        if hover do program.curr_cursor = .POINTING_HAND
+
+        if click
+        {
+            text_input_unbind()
+            
+            color_ptr := get_object_color_ptr(o)
+            open_popup_color_picker(&program.popup, color_ptr^, color_ptr)
+
+            ui_lock_click(program)
+        }
     }
 
+    mouse_pos := rl.GetMousePosition()
     overlap := get_object_overlap(tab^, { 0, yoffset }, o^, mouse_pos)
 
-    if ui_allow_tab_click(program) && rl.IsMouseButtonPressed(.LEFT) && overlap == 0 && grh.get_object_type(o^) == .POINTS
+    if ui_tab_click_active(program) && rl.IsMouseButtonPressed(.LEFT) && overlap == 0 && grh.get_object_type(o^) == .POINTS
     {
         ps := o.(grh.object_points)
         ps.open = !ps.open
@@ -153,7 +187,7 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
         ui_lock_click(program)
     }
 
-    if ui_allow_tab_click(program) && rl.IsMouseButtonPressed(.RIGHT) && overlap >= 0
+    if ui_tab_click_active(program) && rl.IsMouseButtonPressed(.RIGHT) && overlap >= 0
     {
         //TODO: Allow editing of other object types
         if grh.get_object_type(o^) == .MATHEXPR
@@ -193,24 +227,24 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
     
         elem_rect.y += elem_rect.height
     }
-
-    rem_btn_rect := get_ui_rem_btn_rect(rect)
-    drawing.add_entry_rect(draw_group, rl.GRAY, rem_btn_rect)
-    drawing.add_entry_centered_cstring(draw_group, "-", rem_btn_rect, rl.WHITE)
     
     drawing.add_entry_circle_with_border(draw_group, color_btn_pos, color_btn_radius, get_object_color(o))
 }
 
-ui_rect_clicked :: proc(mouse_btn: rl.MouseButton, rect: rl.Rectangle) -> bool
+ui_rect_hovered_and_clicked :: proc(mouse_btn: rl.MouseButton, rect: rl.Rectangle) -> (hover: bool, click: bool)
 {
     mouse_pos := rl.GetMousePosition()
-    return rl.IsMouseButtonPressed(mouse_btn) && rl.CheckCollisionPointRec(mouse_pos, rect)
+    hover = rl.CheckCollisionPointRec(mouse_pos, rect)
+    click = hover && rl.IsMouseButtonPressed(mouse_btn)
+    return
 }
 
-ui_circle_clicked :: proc(mouse_btn: rl.MouseButton, center: rl.Vector2, radius: f32) -> bool
+ui_circle_hovered_and_clicked :: proc(mouse_btn: rl.MouseButton, center: rl.Vector2, radius: f32) -> (hover: bool, click: bool)
 {
     mouse_pos := rl.GetMousePosition()
-    return rl.IsMouseButtonPressed(mouse_btn) && rl.CheckCollisionPointCircle(mouse_pos, center, radius)
+    hover = rl.CheckCollisionPointCircle(mouse_pos, center, radius)
+    click = hover && rl.IsMouseButtonPressed(mouse_btn)
+    return
 }
 
 // TODO: Graph objects should use raw unions to avoid this

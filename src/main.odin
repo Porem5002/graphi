@@ -11,6 +11,9 @@ program_data :: struct
 {
     clicked_button: bool,
 
+    prev_cursor: rl.MouseCursor,
+    curr_cursor: rl.MouseCursor,
+
     tab: ui_editor_tab,
     objects: grh.object_pool,
 
@@ -52,6 +55,8 @@ main :: proc()
 
     program: program_data
     program.draw_group = {}
+    program.prev_cursor = .DEFAULT
+    program.curr_cursor = .DEFAULT
     program.popup = popup_data { .NONE, {} }
     program.objects = {}
     program.scroll = 0
@@ -94,7 +99,15 @@ main :: proc()
         program.tab.content_offset_y = program.scroll * scroll_max
 
         update_tab(&program)
-        update_popup(&program.popup, &program.draw_group, mouse_pos)
+        update_popup(&program, &program.popup, &program.draw_group)
+
+        if program.prev_cursor != program.curr_cursor
+        {
+            rl.SetMouseCursor(program.curr_cursor)
+            program.prev_cursor = program.curr_cursor
+        }
+
+        program.curr_cursor = .DEFAULT
 
         // Graph Interaction
         if !popup_exists && rl.CheckCollisionPointRec(mouse_pos, graph_display_area())

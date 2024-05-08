@@ -27,20 +27,20 @@ popup_color_picker :: struct
     dest: ^rl.Color,
 }
 
-update_popup :: proc(popup: ^popup_data, draw_group: ^drawing.draw_group, mouse_pos: rl.Vector2)
+update_popup :: proc(program: ^program_data, popup: ^popup_data, draw_group: ^drawing.draw_group)
 {
     switch popup.mode
     {
         case .NONE:
         case .COLOR_PICKER:
-            update_popup_color_picker(popup, draw_group, mouse_pos)
+            update_popup_color_picker(program, popup, draw_group)
     }
 }
 
-update_popup_color_picker :: proc(popup: ^popup_data, draw_group: ^drawing.draw_group, mouse_pos: rl.Vector2)
+update_popup_color_picker :: proc(program: ^program_data, popup: ^popup_data, draw_group: ^drawing.draw_group)
 {
+    hover, click: bool
     color_picker := &popup.color_picker
-    clicked := false
 
     screen := screen_vector()
     screen_rect := rl.Rectangle { x = 0, y = 0 }
@@ -60,15 +60,24 @@ update_popup_color_picker :: proc(popup: ^popup_data, draw_group: ^drawing.draw_
     close_btn_rect.height = 30;
     close_btn_rect.x = menu_rect.x + menu_rect.width - close_btn_rect.width
     close_btn_rect.y = menu_rect.y
-    drawing.add_entry_rect(draw_group, rl.RED, close_btn_rect)
-    drawing.add_entry_centered_cstring(draw_group, "+", close_btn_rect, rl.WHITE)
+    close_btn_color := rl.RED
 
-    if !clicked && ui_rect_clicked(.LEFT, close_btn_rect)
+    hover, click = ui_rect_hovered_and_clicked(.LEFT, close_btn_rect)
+
+    if hover
+    {
+        close_btn_color = rl.ColorBrightness(close_btn_color, 0.3)
+        program.curr_cursor = .POINTING_HAND
+    }
+
+    if click
     {
         close_popup(popup)
-        clicked = true
         return
     }
+    
+    drawing.add_entry_rect(draw_group, close_btn_color, close_btn_rect)
+    drawing.add_entry_centered_cstring(draw_group, "+", close_btn_rect, rl.WHITE)
 
     opt_spacing_x := menu_rect.width*0.1
     opt_spacing_y := menu_rect.height*0.1
@@ -87,13 +96,13 @@ update_popup_color_picker :: proc(popup: ^popup_data, draw_group: ^drawing.draw_
 
         for color in COLOR_MATRIX[y]
         {
-            drawing.add_entry_rect(draw_group, color, opt_rect)
+            hover, click = ui_rect_hovered_and_clicked(.LEFT, opt_rect)
 
-            if !clicked && ui_rect_clicked(.LEFT, opt_rect)
-            {
-                color_picker.curr_color = color
-                clicked = true
-            }
+            if hover do program.curr_cursor = .POINTING_HAND
+
+            if click do color_picker.curr_color = color
+
+            drawing.add_entry_rect(draw_group, color, opt_rect)
 
             opt_rect.x += opt_rect.width + opt_spacing_x
         }
@@ -121,15 +130,25 @@ update_popup_color_picker :: proc(popup: ^popup_data, draw_group: ^drawing.draw_
     save_btn_rect.height = menu_rect.height*0.12
     save_btn_rect.x = menu_rect.x + menu_rect.width/2 - save_btn_rect.width/2
     save_btn_rect.y = menu_rect.y + menu_rect.height*0.8
-    drawing.add_entry_rect(draw_group, rl.GRAY, save_btn_rect)
-    drawing.add_entry_centered_cstring(draw_group, "Save", save_btn_rect, rl.WHITE)
+    save_btn_color := rl.GRAY
 
-    if !clicked && ui_rect_clicked(.LEFT, save_btn_rect)
+    hover, click = ui_rect_hovered_and_clicked(.LEFT, save_btn_rect)
+
+    if hover
+    {
+        save_btn_color = rl.ColorBrightness(save_btn_color, 0.3)
+        program.curr_cursor = .POINTING_HAND
+    }
+
+    if click //allow_click && click
     {
         color_picker.dest^ = color_picker.curr_color
         close_popup(popup)
-        clicked = true
+        //allow_click = false
     }
+
+    drawing.add_entry_rect(draw_group, save_btn_color, save_btn_rect)
+    drawing.add_entry_centered_cstring(draw_group, "Save", save_btn_rect, rl.WHITE)
 }
 
 open_popup_color_picker :: proc(popup: ^popup_data, old_color: rl.Color, dest: ^rl.Color)
