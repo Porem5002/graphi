@@ -49,19 +49,24 @@ visual_options :: struct
     color: rl.Color,
 }
 
-object :: union
+object :: struct
 {
-    object_points,
-    object_function,
+    kind: object_type,
+
+    using visual_options: visual_options,
+
+    using _: struct #raw_union
+    {
+        o_points: object_points,
+        o_func: object_function,
+    }
 }
 
 object_points :: struct
 {
+    open: bool,
     texts: [dynamic]string,
     points: [dynamic]rl.Vector2,
-    
-    open: bool,
-    using visual_options: visual_options,
 }
 
 object_function :: struct
@@ -69,24 +74,12 @@ object_function :: struct
     text: string,
     expr: ^mathexpr.ast,
     point_count: responsive(f32),
-    using visual_options: visual_options,
 }
 
 object_type :: enum
 {
     POINTS,
     MATHEXPR,
-}
-
-get_object_type :: proc(o: object) -> object_type
-{
-    switch _ in o
-    {
-        case object_points: return .POINTS
-        case object_function: return .MATHEXPR
-    }
-
-    panic("unreachable")
 }
 
 draw_objects_in_graph :: proc
@@ -97,13 +90,15 @@ draw_objects_in_graph :: proc
 
 draw_object_in_graph :: proc(obj: object, graph: graph)
 {
-    switch o in obj
+    switch obj.kind
     {
-        case object_points:
-            draw_points_in_graph(o.points[:], graph, o.visual_options)
-        case object_function:
+        case .POINTS:
+            o := obj.o_points
+            draw_points_in_graph(o.points[:], graph, obj.visual_options)
+        case .MATHEXPR:
+            o := obj.o_func
             resolved_point_count := resolve(f32, o.point_count)
-            draw_mathexpr_in_graph(o.expr, graph, resolved_point_count, o.visual_options)
+            draw_mathexpr_in_graph(o.expr, graph, resolved_point_count, obj.visual_options)
     }
 }
 

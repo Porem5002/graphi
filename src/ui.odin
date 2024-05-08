@@ -55,13 +55,14 @@ get_ui_color_btn_circle :: proc(obj_rect: rl.Rectangle) -> (radius: f32, center:
     return
 }
 
-get_ui_object_element_count :: proc(obj: grh.object) -> int
+get_ui_object_element_count :: proc(o: grh.object) -> int
 {
-    switch o in obj
+    switch o.kind
     {
-        case grh.object_points:
+        case .POINTS:
+            o := o.o_points
             return o.open ? len(o.points) : 1
-        case grh.object_function:
+        case .MATHEXPR:
             return 1
     }
 
@@ -168,10 +169,7 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
         if click
         {
             text_input_unbind()
-            
-            color_ptr := get_object_color_ptr(o)
-            open_popup_color_picker(&program.popup, color_ptr^, color_ptr)
-
+            open_popup_color_picker(&program.popup, o.color, &o.color)
             ui_lock_click(program)
         }
     }
@@ -179,20 +177,18 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
     mouse_pos := rl.GetMousePosition()
     overlap := get_object_overlap(tab^, { 0, yoffset }, o^, mouse_pos)
 
-    if ui_tab_click_active(program) && rl.IsMouseButtonPressed(.LEFT) && overlap == 0 && grh.get_object_type(o^) == .POINTS
+    if ui_tab_click_active(program) && rl.IsMouseButtonPressed(.LEFT) && overlap == 0 && o.kind == .POINTS
     {
-        ps := o.(grh.object_points)
-        ps.open = !ps.open
-        o^ = ps
+        o.o_points.open = !o.o_points.open
         ui_lock_click(program)
     }
 
     if ui_tab_click_active(program) && rl.IsMouseButtonPressed(.RIGHT) && overlap >= 0
     {
         //TODO: Allow editing of other object types
-        if grh.get_object_type(o^) == .MATHEXPR
+        if o.kind == .MATHEXPR
         { 
-            init_text := o.(grh.object_function).text
+            init_text := o.o_func.text
             text_input_bind(init_text, { o, 0 }, proc(event_data: text_input_event_data, s: string)
             {
                 grh.update_mathexpr_object(event_data.o, s)
@@ -200,7 +196,7 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
         }
         else
         {
-            init_text := o.(grh.object_points).texts[overlap]
+            init_text := o.o_points.texts[overlap]
             text_input_bind(init_text, { o, overlap }, proc(event_data: text_input_event_data, s: string)
             {
                 grh.update_point_in_object(event_data.o, s, event_data.i)
@@ -210,25 +206,24 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
         ui_lock_click(program)
     }
 
-    elem_count := get_ui_object_element_count(o^)
     elem_rect := rect
 
-    for i in 0..<elem_count
+    if o.kind == .MATHEXPR
     {
         drawing.add_entry_rect(draw_group, rl.GetColor(UI_OBJECT_BACKGROUND_COLOR), elem_rect)
-
-        switch o in o
+        drawing.add_entry_centered_text(draw_group, o.o_func.text, elem_rect, o.color)
+    }
+    else
+    {
+        for i in 0..<get_ui_object_element_count(o^)
         {
-            case grh.object_points:
-                drawing.add_entry_centered_text(draw_group, o.texts[i], elem_rect, o.color)
-            case grh.object_function:
-                drawing.add_entry_centered_text(draw_group, o.text, elem_rect, o.color)
+            drawing.add_entry_rect(draw_group, rl.GetColor(UI_OBJECT_BACKGROUND_COLOR), elem_rect)
+            drawing.add_entry_centered_text(draw_group, o.o_points.texts[i], elem_rect, o.color)
+            elem_rect.y += elem_rect.height
         }
-    
-        elem_rect.y += elem_rect.height
     }
     
-    drawing.add_entry_circle_with_border(draw_group, color_btn_pos, color_btn_radius, get_object_color(o))
+    drawing.add_entry_circle_with_border(draw_group, color_btn_pos, color_btn_radius, o.color)
 }
 
 ui_rect_hovered_and_clicked :: proc(mouse_btn: rl.MouseButton, rect: rl.Rectangle) -> (hover: bool, click: bool)
@@ -245,34 +240,6 @@ ui_circle_hovered_and_clicked :: proc(mouse_btn: rl.MouseButton, center: rl.Vect
     hover = rl.CheckCollisionPointCircle(mouse_pos, center, radius)
     click = hover && rl.IsMouseButtonPressed(mouse_btn)
     return
-}
-
-// TODO: Graph objects should use raw unions to avoid this
-get_object_color :: proc(obj: ^grh.object) -> rl.Color
-{
-    switch o in obj
-    {
-        case grh.object_function:
-            return o.color
-        case grh.object_points:
-            return o.color
-    }
-
-    panic("unreachable")
-}
-
-// TODO: Graph objects should use raw unions to avoid this
-get_object_color_ptr :: proc(obj: ^grh.object) -> ^rl.Color
-{
-    switch o in obj
-    {
-        case grh.object_function:
-            return &o.color
-        case grh.object_points:
-            return &o.color
-    }
-
-    panic("unreachable")
 }
 
 get_single_object_rect :: proc(tab: ui_editor_tab, offset: rl.Vector2) -> rl.Rectangle
