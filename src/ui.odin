@@ -242,6 +242,146 @@ ui_circle_hovered_and_clicked :: proc(mouse_btn: rl.MouseButton, center: rl.Vect
     return
 }
 
+ui_dimensions_to_rect :: proc(width: f32, height: f32) -> rl.Rectangle
+{
+    return rl.Rectangle {
+        x = 0,
+        y = 0,
+        width = width,
+        height = height,
+    }
+}
+
+ui_vec_to_rect :: proc(size: rl.Vector2) -> rl.Rectangle
+{
+    return rl.Rectangle {
+        x = 0,
+        y = 0,
+        width = size.x,
+        height = size.y,
+    }
+}
+
+ui_scalar_centered :: proc(offset: f32, a: f32, b: f32) -> f32
+{
+    fmax := max(a, b)
+    fmin := min(a, b)
+    return offset + (fmax - fmin)/2
+}
+
+ui_rect_centered_inside :: proc(rect: rl.Rectangle, container: rl.Rectangle) -> rl.Rectangle
+{
+    new_rect := rect
+    new_rect.x = ui_scalar_centered(container.x, container.width, rect.width)
+    new_rect.y = ui_scalar_centered(container.y, container.height, rect.height)
+    return new_rect
+}
+
+corner :: enum
+{
+    TOP_LEFT,
+    TOP_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_RIGHT,
+}
+
+ui_rect_place_in_corner :: proc(rect: rl.Rectangle, container: rl.Rectangle, corner: corner) -> rl.Rectangle
+{
+    new_rect := rect
+    
+    switch corner
+    {
+        case .TOP_LEFT:
+            new_rect.x = container.x
+            new_rect.y = container.y   
+        case .TOP_RIGHT:
+            new_rect.x = container.x + container.width - rect.width
+            new_rect.y = container.y
+        case .BOTTOM_LEFT:
+            new_rect.x = container.x
+            new_rect.y = container.y + container.height - rect.height
+        case .BOTTOM_RIGHT:
+            new_rect.x = container.x + container.width - rect.width
+            new_rect.y = container.y + container.height - rect.height
+    }
+
+    return new_rect
+}
+
+ui_scale_rect :: proc(rect: rl.Rectangle, scale: f32, ajust_to_keep_center := true) -> rl.Rectangle
+{
+    new_rect := rect
+
+    new_rect.width *= scale
+    new_rect.height *= scale
+    
+    if ajust_to_keep_center
+    {
+        new_rect.x -= rect.width * (scale - 1) / 2
+        new_rect.y -= rect.height * (scale - 1) / 2
+    }
+
+    return new_rect
+}
+
+ui_gen_rect_row :: proc(row_area: rl.Rectangle, spacing: f32, $N: int) -> [N]rl.Rectangle
+{
+    elem_width := (row_area.width - spacing * f32(N - 1)) / f32(N)
+    
+    elem_rect := ui_dimensions_to_rect(elem_width, row_area.height)
+    elem_rect.x = row_area.x
+    elem_rect.y = row_area.y
+
+    row: [N]rl.Rectangle
+
+    for i in 0..<N
+    {
+        row[i] = elem_rect
+        elem_rect.x += elem_rect.width + spacing
+    }
+
+    return row
+}
+
+ui_calc_sequence_length :: proc(elem_width: f32, spacing: f32, N: int) -> f32
+{
+    return elem_width * f32(N) + spacing * f32(N - 1)
+}
+
+ui_gen_rect_table :: proc(table_area: rl.Rectangle, spacing_x: f32, spacing_y: f32, $L: int, $C: int) -> [L][C]rl.Rectangle
+{
+    elem_width := (table_area.width - spacing_x * f32(C - 1)) / f32(C)
+    elem_height := (table_area.height - spacing_y * f32(L - 1)) / f32(L)
+    
+    elem_rect := ui_dimensions_to_rect(elem_width, elem_height)
+    elem_rect.x = table_area.x
+    elem_rect.y = table_area.y
+
+    table: [L][C]rl.Rectangle
+
+    for l in 0..<L
+    {
+        elem_rect.x = table_area.x
+
+        for c in 0..<C
+        {
+            table[l][c] = elem_rect
+            elem_rect.x += elem_rect.width + spacing_x
+        }
+
+        elem_rect.y += elem_rect.height + spacing_y
+    }
+
+    return table
+}
+
+ui_calc_table_dimensions :: proc(width: f32, height: f32, spacing_x: f32, spacing_y: f32, L: int, C: int) -> (table_width: f32, table_height: f32)
+{
+    table_width = ui_calc_sequence_length(width, spacing_x, C)
+    table_height = ui_calc_sequence_length(height, spacing_y, L)
+    return 
+}
+
 get_single_object_rect :: proc(tab: ui_editor_tab, offset: rl.Vector2) -> rl.Rectangle
 {
     return rl.Rectangle { x = offset.x, y = offset.y, width = tab.area.width, height = tab.obj_height }
