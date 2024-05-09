@@ -49,6 +49,7 @@ main :: proc()
     rl.InitWindow(900, 900, "GraPhi")
 
     rl.SetTargetFPS(TARGET_FPS)
+    rl.SetExitKey(.KEY_NULL)
 
     draw_ctx := drawing.load_context()
     defer drawing.unload_context(draw_ctx)
@@ -67,10 +68,7 @@ main :: proc()
         obj_height = UI_OBJECT_HEIGHT
     }
 
-    append(&program.objects, grh.create_points({ "1, 2" , "2, 4", "3, 6", "4, 8" }, color = rl.GREEN))
-    append(&program.objects, grh.create_mathexpr("sin(x) + x", graph_display_area_width, color = rl.YELLOW))
-    append(&program.objects, grh.create_mathexpr("5", graph_display_area_width, color = rl.BLUE))
-    append(&program.objects, grh.create_mathexpr("-x * x", graph_display_area_width, color = rl.RED))
+    append(&program.objects, grh.create_mathexpr("x", graph_display_area_width, color = rl.RED))
 
     for !rl.WindowShouldClose()
     {
