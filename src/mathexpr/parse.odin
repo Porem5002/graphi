@@ -4,6 +4,10 @@ import "core:strconv"
 import "core:unicode"
 import "core:unicode/utf8"
 
+//import "core:fmt"
+
+NO_PRIORITY: int = 0
+
 token_type :: enum
 {
     ERROR,
@@ -44,6 +48,32 @@ parser :: struct
 {
     text: []rune,
     text_section: []rune, 
+}
+
+token_is_binop :: proc(tk: token_type) -> bool
+{
+    #partial switch tk
+    {
+        case .PLUS, .MINUS, .ASTERISK, .PERCENTAGE, .CARROT, .SLASH:
+            return true
+        case:
+            return false
+    }
+}
+
+binop_priority :: proc(op: binop_type) -> int
+{
+    switch op
+    {
+        case .ADD, .SUB:
+            return 10
+        case .MULT, .DIV, .MOD:
+            return 20
+        case .POW:
+            return 30
+    }
+
+    panic("Invalid Binop Type")
 }
 
 next_token :: proc(text: []rune) -> (tk: token, new_slice: []rune)
@@ -190,42 +220,64 @@ parse :: proc(s: string) -> ^ast
     return parse_binop(&p)
 }
 
-parse_binop :: proc(p: ^parser) -> ^ast
+parse_binop :: proc(p: ^parser, priority := NO_PRIORITY) -> ^ast
 {
-    a := parse_operand(p)
-    if a == nil do return nil
+    first := parse_operand(p)
+    if first == nil do return nil
 
     tk, text_section := next_token(p.text_section)
-    op: binop_type 
+    op: binop_type
 
-    #partial switch tk.type
+    for
     {
-        case .PLUS:
-            op = .ADD
-        case .MINUS:
-            op = .SUB
-        case .ASTERISK:
-            op = .MULT
-        case .PERCENTAGE:
-            op = .MOD
-        case .CARROT:
-            op = .POW
-        case .SLASH:
-            op = .DIV
-        case .PIPE, .PAREN_CLOSE, .END:
-            return a
-        case:
+        #partial switch tk.type
+        {
+            case .PLUS:
+                op = .ADD
+            case .MINUS:
+                op = .SUB
+            case .ASTERISK:
+                op = .MULT
+            case .PERCENTAGE:
+                op = .MOD
+            case .CARROT:
+                op = .POW
+            case .SLASH:
+                op = .DIV
+            case .PIPE, .PAREN_CLOSE, .END:
+                return first
+            case:
+                free_ast(first)
+                return nil
+        }
+
+        op_priority := binop_priority(op)
+        if op_priority <= priority do return first
+
+        p.text_section = text_section
+
+        second := parse_binop(p, op_priority)
+        if second == nil
+        {
+            free_ast(first)
             return nil
+        }
+
+        binop := new(ast)
+        binop^ = ast_binop { op = op, a = first, b = second }
+
+        tk, text_section = next_token(p.text_section)
+
+        if token_is_binop(tk.type) &&  priority == NO_PRIORITY
+        {
+            first = binop
+            continue
+        }
+
+        return binop
     }
 
-    p.text_section = text_section
-
-    b := parse_binop(p)
-    if b == nil do return nil
-
-    e := new(ast)
-    e^ = ast_binop { op = op, a = a, b = b }
-    return e
+    panic("unreachable")
 }
 
 parse_operand :: proc(p: ^parser) -> ^ast
