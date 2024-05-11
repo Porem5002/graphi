@@ -186,7 +186,6 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
 
     if ui_tab_click_active(program) && rl.IsMouseButtonPressed(.RIGHT) && overlap >= 0
     {
-        //TODO: Allow editing of other object types
         if o.kind == .MATHEXPR
         {
             update := proc(event_data: rawptr, s: string)
@@ -236,26 +235,17 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
     if o.kind == .MATHEXPR
     {
         drawing.add_entry_rect(draw_group, rl.GetColor(UI_OBJECT_BACKGROUND_COLOR), elem_rect)
-        drawing.add_entry_centered_text(draw_group, o.o_func.text, elem_rect, o.color)
+        
+        text := o.o_func.text
 
         if o.being_edited
         {
-            before_text := strings.clone_to_cstring(o.o_func.text[:text_input.text_index]);
-            defer delete(before_text)
-
-            full_text := strings.clone_to_cstring(o.o_func.text)
-            defer delete(full_text)
-
-            full_text_size := rl.MeasureTextEx(rl.GetFontDefault(), full_text, 23, 3)
-            before_text_size := rl.MeasureTextEx(rl.GetFontDefault(), before_text, 23, 3)
-            cursor_rect := ui_dimensions_to_rect(1, before_text_size.y)
-            
-            centered_text_rect := ui_rect_centered_inside(ui_vec_to_rect(full_text_size), elem_rect)
-            
-            cursor_rect.x = centered_text_rect.x + before_text_size.x 
-            cursor_rect.y = centered_text_rect.y
-
-            drawing.add_entry_rect(draw_group, rl.WHITE, cursor_rect)
+            index := text_input.text_index
+            ui_add_entry_centered_string_with_cursor(draw_group, text, index, elem_rect, o.color, rl.WHITE)
+        }
+        else
+        {
+            drawing.add_entry_centered_text(draw_group, text, elem_rect, o.color)
         }
     }
     else
@@ -263,26 +253,17 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
         for i in 0..<get_ui_object_element_count(o^)
         {
             drawing.add_entry_rect(draw_group, rl.GetColor(UI_OBJECT_BACKGROUND_COLOR), elem_rect)
-            drawing.add_entry_centered_text(draw_group, o.o_points.texts[i], elem_rect, o.color)
+
+            text := o.o_points.texts[i]
 
             if o.being_edited && o.edit_index == i
+            {   
+                index := text_input.text_index
+                ui_add_entry_centered_string_with_cursor(draw_group, text, index, elem_rect, o.color, rl.WHITE)
+            }
+            else
             {
-                before_text := strings.clone_to_cstring(o.o_points.texts[i][:text_input.text_index]);
-                defer delete(before_text)
-
-                full_text := strings.clone_to_cstring(o.o_points.texts[i])
-                defer delete(full_text)
-
-                full_text_size := rl.MeasureTextEx(rl.GetFontDefault(), full_text, 23, 3)
-                before_text_size := rl.MeasureTextEx(rl.GetFontDefault(), before_text, 23, 3)
-                cursor_rect := ui_dimensions_to_rect(1, before_text_size.y)
-                
-                centered_text_rect := ui_rect_centered_inside(ui_vec_to_rect(full_text_size), elem_rect)
-                
-                cursor_rect.x = centered_text_rect.x + before_text_size.x 
-                cursor_rect.y = centered_text_rect.y
-
-                drawing.add_entry_rect(draw_group, rl.WHITE, cursor_rect)
+                drawing.add_entry_centered_text(draw_group, text, elem_rect, o.color)
             }
 
             elem_rect.y += elem_rect.height
@@ -290,6 +271,29 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
     }
     
     drawing.add_entry_circle_with_border(draw_group, color_btn_pos, color_btn_radius, o.color)
+}
+
+ui_add_entry_centered_string_with_cursor :: proc(draw_group: ^drawing.draw_group, text: string, index: int, container: rl.Rectangle, text_color: rl.Color, cursor_color: rl.Color)
+{
+    assert(index <= len(text) && index >= 0)
+
+    full_text := strings.clone_to_cstring(text)
+    before_text := strings.clone_to_cstring(text[:index])
+
+    defer delete(full_text)
+    defer delete(before_text)
+
+    full_text_size := rl.MeasureTextEx(rl.GetFontDefault(), full_text, 23, 3)
+    before_text_size := rl.MeasureTextEx(rl.GetFontDefault(), before_text, 23, 3)
+    cursor_rect := ui_dimensions_to_rect(1, before_text_size.y)
+    
+    centered_text_rect := ui_rect_centered_inside(ui_vec_to_rect(full_text_size), container)
+    
+    cursor_rect.x = centered_text_rect.x + before_text_size.x 
+    cursor_rect.y = centered_text_rect.y
+
+    drawing.add_entry_centered_string(draw_group, text, container, text_color)
+    drawing.add_entry_rect(draw_group, cursor_color, cursor_rect)
 }
 
 ui_rect_hovered_and_clicked :: proc(mouse_btn: rl.MouseButton, rect: rl.Rectangle) -> (hover: bool, click: bool)
