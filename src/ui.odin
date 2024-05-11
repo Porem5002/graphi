@@ -1,6 +1,7 @@
 package main
 
 import "core:fmt"
+import "core:strings"
 
 import grh "graph"
 import "drawing"
@@ -187,20 +188,44 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
     {
         //TODO: Allow editing of other object types
         if o.kind == .MATHEXPR
-        { 
-            init_text := o.o_func.text
-            text_input_bind(init_text, { o, 0 }, proc(event_data: text_input_event_data, s: string)
+        {
+            update := proc(event_data: rawptr, s: string)
             {
-                grh.update_mathexpr_object(event_data.o, s)
-            })
+                o := cast(^grh.object) event_data
+                grh.update_mathexpr_object(o, s)
+            }
+
+            unbind := proc(event_data: rawptr)
+            {
+                o := cast(^grh.object) event_data
+                o.being_edited = false
+            }
+
+            o.being_edited = true
+
+            init_text := o.o_func.text
+            text_input_bind(init_text, o, update, unbind)
         }
         else
         {
-            init_text := o.o_points.texts[overlap]
-            text_input_bind(init_text, { o, overlap }, proc(event_data: text_input_event_data, s: string)
+            update := proc(event_data: rawptr, s: string)
             {
-                grh.update_point_in_object(event_data.o, s, event_data.i)
-            })
+                o := cast(^grh.object) event_data
+                grh.update_point_in_object(o, s, o.edit_index)
+            }
+
+            unbind := proc(event_data: rawptr)
+            {
+                o := cast(^grh.object) event_data
+                o.being_edited = false
+                o.edit_index = 0
+            }
+
+            o.being_edited = true
+            o.edit_index = overlap
+
+            init_text := o.o_points.texts[overlap]
+            text_input_bind(init_text, o, update, unbind)
         }
 
         ui_lock_click(program)
@@ -212,6 +237,26 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
     {
         drawing.add_entry_rect(draw_group, rl.GetColor(UI_OBJECT_BACKGROUND_COLOR), elem_rect)
         drawing.add_entry_centered_text(draw_group, o.o_func.text, elem_rect, o.color)
+
+        if o.being_edited
+        {
+            before_text := strings.clone_to_cstring(o.o_func.text[:text_input.text_index]);
+            defer delete(before_text)
+
+            full_text := strings.clone_to_cstring(o.o_func.text)
+            defer delete(full_text)
+
+            full_text_size := rl.MeasureTextEx(rl.GetFontDefault(), full_text, 23, 3)
+            before_text_size := rl.MeasureTextEx(rl.GetFontDefault(), before_text, 23, 3)
+            cursor_rect := ui_dimensions_to_rect(1, before_text_size.y)
+            
+            centered_text_rect := ui_rect_centered_inside(ui_vec_to_rect(full_text_size), elem_rect)
+            
+            cursor_rect.x = centered_text_rect.x + before_text_size.x 
+            cursor_rect.y = centered_text_rect.y
+
+            drawing.add_entry_rect(draw_group, rl.WHITE, cursor_rect)
+        }
     }
     else
     {
@@ -219,6 +264,27 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
         {
             drawing.add_entry_rect(draw_group, rl.GetColor(UI_OBJECT_BACKGROUND_COLOR), elem_rect)
             drawing.add_entry_centered_text(draw_group, o.o_points.texts[i], elem_rect, o.color)
+
+            if o.being_edited && o.edit_index == i
+            {
+                before_text := strings.clone_to_cstring(o.o_points.texts[i][:text_input.text_index]);
+                defer delete(before_text)
+
+                full_text := strings.clone_to_cstring(o.o_points.texts[i])
+                defer delete(full_text)
+
+                full_text_size := rl.MeasureTextEx(rl.GetFontDefault(), full_text, 23, 3)
+                before_text_size := rl.MeasureTextEx(rl.GetFontDefault(), before_text, 23, 3)
+                cursor_rect := ui_dimensions_to_rect(1, before_text_size.y)
+                
+                centered_text_rect := ui_rect_centered_inside(ui_vec_to_rect(full_text_size), elem_rect)
+                
+                cursor_rect.x = centered_text_rect.x + before_text_size.x 
+                cursor_rect.y = centered_text_rect.y
+
+                drawing.add_entry_rect(draw_group, rl.WHITE, cursor_rect)
+            }
+
             elem_rect.y += elem_rect.height
         }
     }

@@ -53,6 +53,10 @@ object :: struct
 {
     kind: object_type,
 
+    // UI Specific
+    being_edited: bool,
+    edit_index: int,
+
     using visual_options: visual_options,
 
     using _: struct #raw_union
@@ -64,7 +68,9 @@ object :: struct
 
 object_points :: struct
 {
+    // UI Specific
     open: bool,
+
     texts: [dynamic]string,
     points: [dynamic]rl.Vector2,
 }
