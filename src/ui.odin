@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:strings"
+import "core:unicode/utf8"
 
 import grh "graph"
 import "drawing"
@@ -188,43 +189,53 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
     {
         if o.kind == .MATHEXPR
         {
-            update := proc(event_data: rawptr, s: string)
+            bind :: proc(event_data: rawptr)
+            {
+                o := cast(^grh.object) event_data
+                o.being_edited = true
+            }
+
+            update :: proc(event_data: rawptr, s: string)
             {
                 o := cast(^grh.object) event_data
                 grh.update_mathexpr_object(o, s)
             }
 
-            unbind := proc(event_data: rawptr)
+            unbind :: proc(event_data: rawptr)
             {
                 o := cast(^grh.object) event_data
                 o.being_edited = false
             }
 
-            o.being_edited = true
-
             init_text := o.o_func.text
-            text_input_bind(init_text, o, update, unbind)
+            text_input_bind(init_text, o, bind, o, update, unbind)
         }
         else
         {
-            update := proc(event_data: rawptr, s: string)
+            bind_data :: struct { o: ^grh.object, index: int }
+
+            bind :: proc(event_data: rawptr)
+            {
+                using data := cast(^bind_data) event_data
+                o.being_edited = true
+                o.edit_index = index
+            }
+
+            update :: proc(event_data: rawptr, s: string)
             {
                 o := cast(^grh.object) event_data
                 grh.update_point_in_object(o, s, o.edit_index)
             }
 
-            unbind := proc(event_data: rawptr)
+            unbind :: proc(event_data: rawptr)
             {
                 o := cast(^grh.object) event_data
                 o.being_edited = false
                 o.edit_index = 0
             }
 
-            o.being_edited = true
-            o.edit_index = overlap
-
             init_text := o.o_points.texts[overlap]
-            text_input_bind(init_text, o, update, unbind)
+            text_input_bind(init_text, &bind_data { o, overlap }, bind, o, update, unbind)
         }
 
         ui_lock_click(program)
@@ -275,20 +286,25 @@ update_object_in_tab :: proc(program: ^program_data, rect: rl.Rectangle, o: ^grh
 
 ui_add_entry_centered_string_with_cursor :: proc(draw_group: ^drawing.draw_group, text: string, index: int, container: rl.Rectangle, text_color: rl.Color, cursor_color: rl.Color)
 {
-    assert(index <= len(text) && index >= 0)
+    // Since index is refers rune index and not byte index, convert to runes slice
+    full_text_runes := utf8.string_to_runes(text)
+    before_text_str := utf8.runes_to_string(full_text_runes[:index])
+    
+    defer delete(full_text_runes)
+    defer delete(before_text_str)
 
     full_text := strings.clone_to_cstring(text)
-    before_text := strings.clone_to_cstring(text[:index])
+    before_text := strings.clone_to_cstring(before_text_str)
 
     defer delete(full_text)
     defer delete(before_text)
 
     full_text_size := rl.MeasureTextEx(rl.GetFontDefault(), full_text, 23, 3)
     before_text_size := rl.MeasureTextEx(rl.GetFontDefault(), before_text, 23, 3)
-    cursor_rect := ui_dimensions_to_rect(1, before_text_size.y)
+    cursor_rect := ui_dimensions_to_rect(1, 20)
     
     centered_text_rect := ui_rect_centered_inside(ui_vec_to_rect(full_text_size), container)
-    
+
     cursor_rect.x = centered_text_rect.x + before_text_size.x 
     cursor_rect.y = centered_text_rect.y
 
