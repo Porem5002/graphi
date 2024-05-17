@@ -1,6 +1,7 @@
 package main
 
 import "core:math"
+import c "core:c/libc"
 
 import grh "graph"
 import "drawing"
@@ -35,7 +36,7 @@ SCALE_FACTOR :: 10.0
 MOVEMENT_SPEED :: 3.0
 SCROLL_FACTOR :: 6.0
 
-TARGET_FPS :: 60
+TARGET_FPS :: 60   
 
 main :: proc()
 {
@@ -43,10 +44,12 @@ main :: proc()
         rl.ConfigFlag.MSAA_4X_HINT,
         rl.ConfigFlag.WINDOW_RESIZABLE,
     }
-    rl.SetConfigFlags(flags)
+    rl.SetConfigFlags(flags) 
 
     text_input_init()
-    rl.InitWindow(900, 900, "GraPhi")
+    
+    rl.InitWindow(500, 500, "GraPhi")
+    setup_window_size_and_pos()
 
     rl.SetTargetFPS(TARGET_FPS)
     rl.SetExitKey(.KEY_NULL)
@@ -115,22 +118,22 @@ main :: proc()
             graph.scale = max(graph.scale, math.F32_EPSILON)
 
             /* Offset/Movement Controls */
-            if rl.IsKeyPressed(.W) || rl.IsKeyDown(.W)
+            if !text_input.active && (rl.IsKeyPressed(.W) || rl.IsKeyDown(.W))
             {
                 graph.y_axis.offset += delta_time * MOVEMENT_SPEED * graph.scale
             }
 
-            if rl.IsKeyPressed(.S) || rl.IsKeyDown(.S)
+            if !text_input.active && (rl.IsKeyPressed(.S) || rl.IsKeyDown(.S))
             {
                 graph.y_axis.offset -= delta_time * MOVEMENT_SPEED * graph.scale
             }
 
-            if rl.IsKeyPressed(.D) || rl.IsKeyDown(.D)
+            if !text_input.active && (rl.IsKeyPressed(.D) || rl.IsKeyDown(.D))
             {
                 graph.x_axis.offset += delta_time * MOVEMENT_SPEED * graph.scale
             }
 
-            if rl.IsKeyPressed(.A) || rl.IsKeyDown(.A)
+            if !text_input.active && (rl.IsKeyPressed(.A) || rl.IsKeyDown(.A))
             {
                 graph.x_axis.offset -= delta_time * MOVEMENT_SPEED * graph.scale
             }
@@ -151,7 +154,7 @@ main :: proc()
 
             drawing.draw_all(draw_ctx, &program.draw_group)
 
-            rl.DrawFPS(10, 10)
+            when ODIN_DEBUG do rl.DrawFPS(10, 10)
         rl.EndDrawing()
     }
 
@@ -174,6 +177,19 @@ graph_display_area :: proc() -> rl.Rectangle
 graph_display_area_width :: proc() -> f32
 {
     return graph_display_area().width
+}
+
+setup_window_size_and_pos :: proc()
+{
+    monitor := rl.GetCurrentMonitor()
+    width := rl.GetMonitorWidth(monitor)
+    height := rl.GetMonitorHeight(monitor)
+
+    window_width := c.int(f32(width) * 0.8)
+    window_height := c.int(f32(height) * 0.8)
+
+    rl.SetWindowSize(window_width, window_height)
+    rl.SetWindowPosition((width - window_width)/2, (height - window_height)/2)
 }
 
 screen_vector :: proc() -> rl.Vector2
