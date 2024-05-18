@@ -1,2 +1,4 @@
+.vs
 *.exe
+*.pdb
 ols.json

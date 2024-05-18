@@ -1,6 +1,10 @@
 # GraPhi
 
-A simple graphing calculator for visualizing math equations.
+A simple graphing calculator for visualizing math functions.
+
+![](demo/img1.png)
+
+![](demo/img2.png)
 
 ## Requirements
 GraPhi requires OpenGL 3.3 support to be used. If your hardware does not support this version of OpenGL you can try to emulate it using something like [Mesa3D](https://www.mesa3d.org/).
