@@ -18,11 +18,11 @@ Graph:
 GraPhi requires OpenGL 3.3 support to be used. If your hardware does not support this version of OpenGL you can try to emulate it using something like [Mesa3D](https://www.mesa3d.org/).
 
 ## Build from Source
-This project was developed using the [Odin Programming Language](https://github.com/odin-lang/Odin). So the odin compiler must be installed and be available in the command line through the **PATH** environment variable.  
+This project was developed using the [Odin Programming Language](https://github.com/odin-lang/Odin). So the Odin compiler must be installed and be available in the command line through the **PATH** environment variable.  
 
-The recomended odin version is: [dev-2023-10](https://github.com/odin-lang/Odin/releases/tag/dev-2023-10)
+The recommended odin version is: [dev-2023-10](https://github.com/odin-lang/Odin/releases/tag/dev-2023-10)
 
-If the compiler is installed and ready to use we just need to run one of the following commands (run the commands that are specific to your platform):
+If the compiler is installed and ready to use, you just need to run one of the following commands (run the commands that are specific to your platform):
 
 ### For Windows:
 
